@@ -29,7 +29,22 @@ void printdata(void)
       Serial.print (",");
       Serial.print(magnetom_y);
       Serial.print (",");
-      Serial.print(magnetom_z);      
+      Serial.print(magnetom_z);
+/*
+      Serial.print(",");
+      Serial.print(mag_offset_x);
+      Serial.print (",");
+      Serial.print(mag_offset_y);
+      Serial.print (",");
+      Serial.print(mag_offset_z);
+      Serial.print (",");
+      Serial.print(mag_scale_x);
+      Serial.print (",");
+      Serial.print(mag_scale_y);
+      Serial.print (",");
+      Serial.print(mag_scale_z);*/
+      
+      
       #endif
       /*#if PRINT_DCM == 1
       Serial.print (",DCM:");

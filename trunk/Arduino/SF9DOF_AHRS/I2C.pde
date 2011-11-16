@@ -3,8 +3,10 @@
 /* and HMC5843 magnetometer                                */
 /* ******************************************************* */
 
-int AccelAddress = 0x53;
-int CompassAddress = 0x1E;  //0x3C //0x3D;  //(0x42>>1);
+int AccelAddress = 0x53;      // 0x53 = 0xA6 / 2
+int CompassAddress = 0x1E;    // 0x1E = 0x3C / 2    //0x3D
+int GyroAddress = 0x68;       // 0x68 = 0xD0 / 2
+
 
 void I2C_Init()
 {
@@ -59,9 +61,9 @@ void Read_Accel()
     AN[3] = ACC[0];
     AN[4] = ACC[1];
     AN[5] = ACC[2];
-    accel_x = SENSOR_SIGN[3]*(ACC[0]-AN_OFFSET[3]);
-    accel_y = SENSOR_SIGN[4]*(ACC[1]-AN_OFFSET[4]);
-    accel_z = SENSOR_SIGN[5]*(ACC[2]-AN_OFFSET[5]);
+    accel_x = SENSOR_SIGN[3]*(ACC[0]/*-AN_OFFSET[3]*/);
+    accel_y = SENSOR_SIGN[4]*(ACC[1]/*-AN_OFFSET[4]*/);
+    accel_z = SENSOR_SIGN[5]*(ACC[2]/*-AN_OFFSET[5]*/);
     }
   else
     Serial.println("!ERR: Acc data");
@@ -73,6 +75,13 @@ void Compass_Init()
   Wire.send(0x02); 
   Wire.send(0x00);   // Set continouos mode (default to 10Hz)
   Wire.endTransmission(); //end transmission
+  delay(10);
+
+  Wire.beginTransmission(CompassAddress);
+  Wire.send(0x00);
+  Wire.send(0b00011000);   // Set 50Hz
+  Wire.endTransmission(); //end transmission
+  delay(5);
 }
 
 void Read_Compass()
@@ -84,7 +93,7 @@ void Read_Compass()
   Wire.send(0x03);        //sends address to read from
   Wire.endTransmission(); //end transmission
   
-  //Wire.beginTransmission(CompassAddress); 
+  Wire.beginTransmission(CompassAddress); 
   Wire.requestFrom(CompassAddress, 6);    // request 6 bytes from device
   while(Wire.available())   // ((Wire.available())&&(i<6))
   { 
@@ -104,3 +113,63 @@ void Read_Compass()
     Serial.println("!ERR: Mag data");
 }
 
+
+/* Gyro stuffs */
+
+void Gyro_Init()
+{
+  /* Power up reset defaults */
+  Wire.beginTransmission(GyroAddress);
+  Wire.send(0x3E);
+  Wire.send(0x80);
+  Wire.endTransmission(); //end transmission
+  delay(10);
+  
+  /* Select full-scale range of the gyro sensors */
+  Wire.beginTransmission(GyroAddress);
+  Wire.send(0x16);
+  Wire.send(0x18);    // DLPF_CFG = 0, FS_SEL = 3
+  Wire.endTransmission(); //end transmission
+  delay(10);
+  
+  /* dont know... */
+  Wire.beginTransmission(GyroAddress);
+  Wire.send(0x3E);
+  Wire.send(0x00);
+  Wire.endTransmission(); //end transmission
+  delay(10);
+  
+}
+/**/
+
+// Reads x,y and z accelerometer registers
+void Read_Gyro()
+{
+  int i = 0;
+  byte buff[6];
+  
+  Wire.beginTransmission(GyroAddress); 
+  Wire.send(0x1D);        //sends address to read from
+  Wire.endTransmission(); //end transmission
+  
+  Wire.beginTransmission(GyroAddress); //start transmission to device
+  Wire.requestFrom(GyroAddress, 6);    // request 6 bytes from device
+  
+  while(Wire.available())   // ((Wire.available())&&(i<6))
+  { 
+    buff[i] = Wire.receive();  // receive one byte
+    i++;
+  }
+  Wire.endTransmission(); //end transmission
+  
+  if (i==6)  // All bytes received?
+    {
+    AN[1] = (((int)buff[0]) << 8) | buff[1];    // Y axis (internal sensor x axis)
+    AN[0] = (((int)buff[2]) << 8) | buff[3];    // X axis (internal sensor y axis)
+    AN[2] = (((int)buff[4]) << 8) | buff[5];    // Z axis
+    }
+  else
+    Serial.println("!ERR: Gyro data");
+}
+
+/**/
