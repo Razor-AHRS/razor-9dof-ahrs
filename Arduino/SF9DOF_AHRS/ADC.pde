@@ -29,9 +29,9 @@ void Read_adc_raw(void)
 float read_adc(int select)
 {
   if (SENSOR_SIGN[select]<0)
-    return(AN_OFFSET[select]-AN[select]);
+    return(/*AN_OFFSET[select]*/-AN[select]);
   else
-    return(AN[select]-AN_OFFSET[select]); 
+    return(AN[select]/*-AN_OFFSET[select]*/); 
 }
 
 //Activating the ADC interrupts. 
@@ -47,6 +47,7 @@ void Analog_Reference(uint8_t mode)
   analog_reference = mode;
 }
 
+/*
 //ADC interrupt vector, this piece of code
 //is executed everytime a convertion is done. 
 ISR(ADC_vect)
@@ -65,3 +66,4 @@ ISR(ADC_vect)
   // start the conversion
   ADCSRA|= (1<<ADSC);
 }
+/**/
