@@ -1,3 +1,5 @@
+// DCM algorithm
+
 /**************************************************/
 void Normalize(void)
 {
@@ -67,42 +69,21 @@ void Drift_correction(void)
   Vector_Scale(&Scaled_Omega_I[0],&errorYaw[0],Ki_YAW);//.00001Integrator
   Vector_Add(Omega_I,Omega_I,Scaled_Omega_I);//adding integrator to the Omega_I
 }
-/**************************************************/
-/*
-void Accel_adjust(void)
-{
- Accel_Vector[1] += Accel_Scale(speed_3d*Omega[2]);  // Centrifugal force on Acc_y = GPS_speed*GyroZ
- Accel_Vector[2] -= Accel_Scale(speed_3d*Omega[1]);  // Centrifugal force on Acc_z = GPS_speed*GyroY 
-}
-*/
-/**************************************************/
 
 void Matrix_update(void)
 {
-  Gyro_Vector[0]=Gyro_Scaled_X(read_adc(0)); //gyro x roll
-  Gyro_Vector[1]=Gyro_Scaled_Y(read_adc(1)); //gyro y pitch
-  Gyro_Vector[2]=Gyro_Scaled_Z(read_adc(2)); //gyro Z yaw
+  Gyro_Vector[0]=GYRO_SCALED_RAD(gyro[0]); //gyro x roll
+  Gyro_Vector[1]=GYRO_SCALED_RAD(gyro[1]); //gyro y pitch
+  Gyro_Vector[2]=GYRO_SCALED_RAD(gyro[2]); //gyro z yaw
   
-  Accel_Vector[0]=accel_x;
-  Accel_Vector[1]=accel_y;
-  Accel_Vector[2]=accel_z;
+  Accel_Vector[0]=accel[0];
+  Accel_Vector[1]=accel[1];
+  Accel_Vector[2]=accel[2];
     
   Vector_Add(&Omega[0], &Gyro_Vector[0], &Omega_I[0]);  //adding proportional term
   Vector_Add(&Omega_Vector[0], &Omega[0], &Omega_P[0]); //adding Integrator term
-
-  //Accel_adjust();    //Remove centrifugal acceleration.   We are not using this function in this version - we have no speed measurement
   
- #if OUTPUTMODE==1         
-  Update_Matrix[0][0]=0;
-  Update_Matrix[0][1]=-G_Dt*Omega_Vector[2];//-z
-  Update_Matrix[0][2]=G_Dt*Omega_Vector[1];//y
-  Update_Matrix[1][0]=G_Dt*Omega_Vector[2];//z
-  Update_Matrix[1][1]=0;
-  Update_Matrix[1][2]=-G_Dt*Omega_Vector[0];//-x
-  Update_Matrix[2][0]=-G_Dt*Omega_Vector[1];//-y
-  Update_Matrix[2][1]=G_Dt*Omega_Vector[0];//x
-  Update_Matrix[2][2]=0;
- #else                    // Uncorrected data (no drift correction)
+#ifdef DEBUG__NO_DRIFT_CORRECTION // Do not use drift correction
   Update_Matrix[0][0]=0;
   Update_Matrix[0][1]=-G_Dt*Gyro_Vector[2];//-z
   Update_Matrix[0][2]=G_Dt*Gyro_Vector[1];//y
@@ -112,7 +93,17 @@ void Matrix_update(void)
   Update_Matrix[2][0]=-G_Dt*Gyro_Vector[1];
   Update_Matrix[2][1]=G_Dt*Gyro_Vector[0];
   Update_Matrix[2][2]=0;
- #endif
+#else // Use drift correction
+  Update_Matrix[0][0]=0;
+  Update_Matrix[0][1]=-G_Dt*Omega_Vector[2];//-z
+  Update_Matrix[0][2]=G_Dt*Omega_Vector[1];//y
+  Update_Matrix[1][0]=G_Dt*Omega_Vector[2];//z
+  Update_Matrix[1][1]=0;
+  Update_Matrix[1][2]=-G_Dt*Omega_Vector[0];//-x
+  Update_Matrix[2][0]=-G_Dt*Omega_Vector[1];//-y
+  Update_Matrix[2][1]=G_Dt*Omega_Vector[0];//x
+  Update_Matrix[2][2]=0;
+#endif
 
   Matrix_Multiply(DCM_Matrix,Update_Matrix,Temporary_Matrix); //a*b=c
 
