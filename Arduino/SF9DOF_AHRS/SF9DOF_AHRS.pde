@@ -1,9 +1,9 @@
 /******************************************************************
 * Sparkfun 9DOF Razor IMU AHRS
 * 9 Degree of Measurement Attitude and Heading Reference System
-*
 * Version 1.3
-* Released under GNU LGPL License
+*
+* Released under GNU LGPL (Lesser General Public License) v3.0
 *
 * TODO: http://dev.qu.tu-berlin.de/.......
 *
@@ -14,13 +14,14 @@
 * - Updated and extended by Peter Bartz (peter-bartz@gmx.de)
 *       - Cleaned up, streamlined and restructured most of the code to make it more comprehensible
 * 	- Added sensor calibration (improves accuracy a lot!)
-* 	- Added binary roll/pitch/yaw output and support to synch output stream
+* 	- Added binary ywa/pitch/roll output and support to synch output stream
 * 	- Added support to connect to Rovering Networks Bluetooth modules (and compatible)
 *       - TODO: add support for SEN-10736
 *       - TODO: maybe gyro works better with lower filter bandwidth (DLPF_CF) and sample rate (SMPLRT_DIV)? Ask Sascha...
 *       - TODO: use self-calibration and temperature-compensation features of the sensors
 *
 * TODO: Put calibration values into eeprom instead of hardcoding them using #define
+* TODO: Command list
 ******************************************************************/
 
 /*
@@ -45,16 +46,15 @@
     X axis pointing forward (to the FTDI connector)
     Y axis pointing to the right
     and Z axis pointing down.
-  Positive pitch : nose up
-  Positive roll  : right wing down
+    
   Positive yaw   : clockwise
+  Positive roll  : right wing down
+  Positive pitch : nose up
+  
+  Transformation order: first yaw then pitch then roll.
 */
 
 #include <Wire.h>
-
-
-
-
 
 
 
@@ -83,22 +83,26 @@
 
 // Output mode
 #define OUTPUT__MODE_CALIBRATE_SENSORS 0 // Outputs sensor min/max values as text for manual calibration
-#define OUTPUT__MODE_ANGLES_TEXT 1 // Outputs roll/pitch/yaw in degrees as text
-#define OUTPUT__MODE_ANGLES_BINARY 2 // Outputs roll/pitch/yaw in degrees as binary float
+#define OUTPUT__MODE_ANGLES_TEXT 1 // Outputs yaw/pitch/roll in degrees as text
+#define OUTPUT__MODE_ANGLES_BINARY 2 // Outputs yaw/pitch/roll in degrees as binary float
 #define OUTPUT__MODE_SENSORS_TEXT 3 // Outputs (calibrated) sensor values for all 9 axes as text
 // Select your startup output mode here!
-//int output_mode = OUTPUT__MODE_CALIBRATE_SENSORS;
+//int output_mode = OUTPUT__MODE_CALIBRATE_SENSORS; // TODO remove
 int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
+// Select if serial output is enabled per default on startup.
+#define OUTPUT__STARTUP_STREAM_ON true  // true or false
+
 // Bluetooth
-// Turn this on, if you have a Rovering Networks Bluetooth Module attached.
+// Set this to true, if you have a Rovering Networks Bluetooth Module attached.
 // The connect/disconnect message prefix of the module has to be set to "#".
 // (Refer to manual, it can be set like this: SO,#)
 // Using this has two effects:
 //  1. The status LED will reflect the connection status (on/off)
-//  2. Output of roll/pitch/yaw will only happen as long as we're connected.
-//     That way it's very easy to synchronize receiver and sender. 
-//#define OUTPUT__HAS_RN_BLUETOOTH
+//  2. Output via serial port will only happen as long as we're connected.
+//     That way it's very easy to synchronize receiver and sender just by connecting/disconnecting.
+// NOTE: When using this, OUTPUT__STARTUP_STREAM_ON has no effect!
+#define OUTPUT__HAS_RN_BLUETOOTH false  // true or false
 
 
 // Sensor calibration values
@@ -171,7 +175,7 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define MAGN_X_OFFSET ((MAGN_X_MIN + MAGN_X_MAX) / 2.0f)
 #define MAGN_Y_OFFSET ((MAGN_Y_MIN + MAGN_Y_MAX) / 2.0f)
 #define MAGN_Z_OFFSET ((MAGN_Z_MIN + MAGN_Z_MAX) / 2.0f)
-#define MAGN_X_SCALE (10000.0f / (MAGN_X_MAX - MAGN_X_OFFSET))
+#define MAGN_X_SCALE (10000.0f / (MAGN_X_MAX - MAGN_X_OFFSET))  // TODO 10000.0?
 #define MAGN_Y_SCALE (10000.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET))
 #define MAGN_Z_SCALE (10000.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
 
@@ -188,7 +192,7 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 // Stuff
 #define STATUS_LED_PIN 13  // Pin number of status LED
-#define GRAVITY 256.0f // Arbitrary value as "1G reference" used for accelerometer calibration
+#define GRAVITY 256.0f // TODO Arbitrary value as "1G reference" used for accelerometer calibration
 #define TO_RAD(x) (x * 0.01745329252)  // *pi/180
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
@@ -222,9 +226,9 @@ float Update_Matrix[3][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
 float Temporary_Matrix[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 
 // Euler angles
-float roll;
-float pitch;
 float yaw;
+float pitch;
+float roll;
 
 // DCM timing in the main loop
 long timestamp;
@@ -232,15 +236,22 @@ long timestamp_old;
 float G_Dt; // Integration time for DCM algorithm
 
 // Output-state variables
-boolean bluetooth_connected = false;
+boolean output_stream_on;
+boolean output_single_on;
 int curr_calibration_sensor = 1;
+boolean reset_calibration_session_flag = true;
+
+void read_sensors() {
+  Read_Gyro(); // Read gyroscope
+  Read_Accel(); // Read accelerometer
+  Read_Magn(); // Read magnetometer
+}
 
 // Read every sensor and record a time stamp
 // TODO re-init global vars?
-void init_sensor_fusion() {
-  Read_Gyro();
-  Read_Magn();
-  Read_Accel();
+void reset_sensor_fusion() {
+  delay(20);
+  read_sensors();
   timestamp = millis();
 }
 
@@ -262,8 +273,14 @@ void compensate_sensor_errors() {
     gyro[2] -= GYRO_AVERAGE_OFFSET_Z;
 }
 
-void new_calibration_session()
+// Called if reset_calibration_session_flag is set
+void check_reset_calibration_session()
 {
+  // Raw sensor values have to be read already, but no error compensation applied
+
+  // Reset this calibration session?
+  if (!reset_calibration_session_flag) return;
+  
   // Reset acc and mag calibration variables
   for (int i = 0; i < 3; i++) {
     accel_min[i] = accel_max[i] = accel[i];
@@ -273,6 +290,20 @@ void new_calibration_session()
   // Reset gyro calibration variables
   gyro_num_samples = 0;  // Reset gyro calibration averaging
   gyro_average[0] = gyro_average[1] = gyro_average[2] = 0.0f;
+  
+  reset_calibration_session_flag = false;
+}
+
+void turn_output_stream_on()
+{
+  output_stream_on = true;
+  digitalWrite(STATUS_LED_PIN, HIGH);
+}
+
+void turn_output_stream_off()
+{
+  output_stream_on = false;
+  digitalWrite(STATUS_LED_PIN, LOW);
 }
 
 void setup()
@@ -292,13 +323,14 @@ void setup()
   Compass_Init();
   Gyro_Init();
   delay(20);
-  
-  init_sensor_fusion();
+  reset_sensor_fusion();
 
-  // Init calibration values
-  new_calibration_session();
-
-  compensate_sensor_errors();
+  // Init output
+#if (OUTPUT__HAS_RN_BLUETOOTH == true) || (OUTPUT__STARTUP_STREAM_ON == false)
+  turn_output_stream_off();
+#else
+  turn_output_stream_on();
+#endif
 }
 
 // Main loop
@@ -310,64 +342,68 @@ void loop()
     if (Serial.read() == '#') // Start of new control message
     {
       int command = Serial.read(); // Commands
-      if (command == 's') // _s_ynch request
+      if (command == 'g') // request one output frame (_g_et)
+        output_single_on = true;
+      else if (command == 's') // _s_ynch request
       {
         // Send synch message
         Serial.println();  // Output on new line
-        Serial.println("!SYNCH");
+        Serial.println("#SYNCH");
       }
-      else if (command == 'n') // Calibrate _n_ext sensor
+      if (command == 'p') // incoming _p_ing
       {
-        curr_calibration_sensor = (curr_calibration_sensor + 1) % 3;
-        new_calibration_session();
+        // Send PONG
+        Serial.println();  // Output on new line
+        Serial.println("#PONG");
       }
       else if (command == 'o') // Set _o_utput mode
       {
         while (Serial.available() < 1) { } // Wait for another byte to arrive
-        int mode = Serial.read();
-        if (mode == 'n')  // _n_ext output mode
+        int output_param = Serial.read();
+        if (output_param == 'n')  // _n_ext output mode
+        {
           output_mode = (output_mode + 1) % 4;
-        else if (mode == 't') // Output angles as _t_ext
+          reset_calibration_session_flag = true;
+        }
+        else if (output_param == 't') // Output angles as _t_ext
           output_mode = OUTPUT__MODE_ANGLES_TEXT;
-        else if (mode == 'b') // Output angles in _b_inary form
+        else if (output_param == 'b') // Output angles in _b_inary form
           output_mode = OUTPUT__MODE_ANGLES_BINARY;
-        else if (mode == 'c') // Go to _c_alibration mode
+        else if (output_param == 'c') // Go to _c_alibration mode
         {
           output_mode = OUTPUT__MODE_CALIBRATE_SENSORS;
-          new_calibration_session();
+          reset_calibration_session_flag = true;
         }
-        else if (mode == 's') // Output _s_ensor values as text
+        else if (output_param == 's') // Output _s_ensor values as text
           output_mode = OUTPUT__MODE_SENSORS_TEXT;
+        else if (output_param == '0')
+        {
+          turn_output_stream_off();
+          reset_calibration_session_flag = true;
+        }
+        else if (output_param == '1')
+        {
+          reset_calibration_session_flag = true;
+          turn_output_stream_on();
+        }
       }
-#ifdef OUTPUT__HAS_RN_BLUETOOTH
+      else if (command == 'n') // Calibrate _n_ext sensor
+      {
+        curr_calibration_sensor = (curr_calibration_sensor + 1) % 3;
+        reset_calibration_session_flag = true;
+      }
+#if OUTPUT__HAS_RN_BLUETOOTH == true
       // Read messages from bluetooth module
       // For this to work, the connect/disconnect message prefix of the module has to be set to "#".
-      else if (command == 'C') // Bluetooth "#CONNECT" message
-      {
-        bluetooth_connected = true;
-        digitalWrite(STATUS_LED_PIN, HIGH);
-        init_sensor_fusion();
-      }
-      else if (command == 'D') // Bluetooth "#DISCONNECT" message
-      {
-        bluetooth_connected = false;
-        digitalWrite(STATUS_LED_PIN, LOW);
-      }
-#endif // OUTPUT__HAS_RN_BLUETOOTH
+      else if (command == 'C') // Bluetooth "#CONNECT" message (does the same as "#o1")
+        turn_output_on();
+      else if (command == 'D') // Bluetooth "#DISCONNECT" message (does the same as "#o0")
+        turn_output_off();
+#endif // OUTPUT__HAS_RN_BLUETOOTH == true
     }
     else
     { } // Skip character
   }
-
-
-#ifdef OUTPUT__HAS_RN_BLUETOOTH
-  // Do not read sensors and send data if bluetooth not connected
-  if (!bluetooth_connected) {
-    delay(10);
-    return;
-  }
-#endif // OUTPUT__HAS_RN_BLUETOOTH
-
 
   // Time to read the sensors again?
   if((millis() - timestamp) >= OUTPUT__DATA_INTERVAL)
@@ -379,20 +415,19 @@ void loop()
     else G_Dt = 0;
 
     // Update sensor readings
-    Read_Gyro(); // Read gyroscope
-    Read_Accel(); // Read accelerometer
-    Read_Magn(); // Read magnetometer
+    read_sensors();
 
     if (output_mode == OUTPUT__MODE_CALIBRATE_SENSORS)  // We're in calibration mode
     {
-      output_calibration(curr_calibration_sensor);
+      check_reset_calibration_session();  // Check if this session needs a reset
+      if (output_stream_on || output_single_on) output_calibration(curr_calibration_sensor);
     }
     else if (output_mode == OUTPUT__MODE_SENSORS_TEXT)
     {
       // Apply sensor calibration
       compensate_sensor_errors();
       
-      output_sensors();
+      if (output_stream_on || output_single_on) output_sensors();
     }
     else
     {
@@ -406,9 +441,9 @@ void loop()
       Drift_correction();
       Euler_angles();
       
-      output_angles();
+      if (output_stream_on || output_single_on) output_angles();
     }
+    
+    output_single_on = false;
   }
 }
-
-
