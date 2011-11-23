@@ -1,31 +1,28 @@
-/******************************************************************
-* Test Sketch for
-* Sparkfun 9DOF Razor IMU AHRS
+/****************************************************************************
+* Test Sketch for Razor AHRS v1.3
 * 9 Degree of Measurement Attitude and Heading Reference System
-* Version 1.3
+* for Sparkfun 9DOF Razor IMU
 *
+* Written by Peter Bartz (peter-bartz@gmx.de)
 * Released under GNU LGPL (Lesser General Public License) v3.0
 *
-* Written by Peter Bartz
-*
-* TODO: http://dev.qu.tu-berlin.de/.......
-* TODO: email?
-*
-******************************************************************/
+* Updates, bug reports and feedback: http://dev.qu.tu-berlin.de/TODO
+****************************************************************************/
 
 import processing.opengl.*;
 import processing.serial.*;
 
 // IF THE SKETCH CRASHES OR HANGS ON STARTUP, MAKE SURE YOU ARE USING THE RIGHT SERIAL PORT:
-// 1. Have a look at the Processing console output
-// 2. Look for the serial port list and find the port you need (same as in Arduino)
-// 3. Set your port number here and run again
+// 1. Have a look at the Processing console output of this sketch.
+// 2. Look for the serial port list and find the port you need (it's the same as in Arduino).
+// 3. Set your port number here:
 final static int SERIAL_PORT_NUM = 0;
+// 4. Try again.
 
 final static int SERIAL_PORT_BAUD_RATE = 57600;
 
-float yaw = 10.0f;
-float pitch = -40.0f;
+float yaw = 0.0f;
+float pitch = 0.0f;
 float roll = 0.0f;
 float yawOffset = 0.0f;
 
@@ -101,6 +98,7 @@ boolean readToken(Serial serial, String token) {
   return true;
 }
 
+// Global setup
 void setup() {
   // Setup graphics
   size(640, 480, OPENGL);
@@ -117,22 +115,25 @@ void setup() {
   println(Serial.list());
   String portName = Serial.list()[SERIAL_PORT_NUM];
   println();
-  println("MAKE SURE YOU SET THE RIGHT SERIAL PORT NUMBER IN THE CODE");
-  println("-> Using port " + SERIAL_PORT_NUM + ": " + portName);
+  println("MAKE SURE YOU SET THE RIGHT SERIAL PORT NUMBER IN THE CODE!");
+  println("  -> Using port " + SERIAL_PORT_NUM + ": " + portName);
+  println();
   serial = new Serial(this, portName, SERIAL_PORT_BAUD_RATE);
 }
 
 void setupRazor() {
   println("Trying to setup and synch Razor...");
   
-  // On Mac OSX and Linux the board will do a reset when we connect, which is really bad. See
-  // "Automatic (Software) Reset" on http://www.arduino.cc/en/Main/ArduinoBoardProMini
+  // On Mac OSX and Linux (Windows too?) the board will do a reset when we connect, which is really bad.
+  // See "Automatic (Software) Reset" on http://www.arduino.cc/en/Main/ArduinoBoardProMini
   // So we have to wait until the bootloader is finished and the Razor firmware can receive commands.
+  // To prevent this, disconnect/cut/unplug the DTR line going to the board. This also has the advantage,
+  // that the angles you receive are stable right from the beginning. 
   delay(3000);  // 3 seconds should be enough
   
   // Set Razor output parameters
   serial.write("#ob");  // Turn on binary output
-  serial.write("#o1");  // Turn on streaming output
+  serial.write("#o1");  // Turn on continuous streaming output
   
   // Synch with Razor
   serial.clear();  // Clear input buffer up to here
@@ -193,16 +194,16 @@ void draw() {
 
 void keyPressed() {
   switch (key) {
-    case '0':  // Turn Razor output stream off
+    case '0':  // Turn Razor's continuous output stream off
       serial.write("#o0");
       break;
-    case '1':  // Turn Razor output stream on
+    case '1':  // Turn Razor's continuous output stream on
       serial.write("#o1");
       break;
-    case 'g':  // Request one single yaw/pitch/roll frame from Razor (use when stream is off)
+    case 'g':  // Request one single yaw/pitch/roll frame from Razor (use when continuous streaming is off)
       serial.write("#g");
       break;
-    case 'a':  // Align Razor with screen
+    case 'a':  // Align screen with Razor
       yawOffset = yaw;
   }
 }

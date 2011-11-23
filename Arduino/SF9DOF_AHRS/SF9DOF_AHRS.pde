@@ -1,31 +1,37 @@
-/******************************************************************
-* Sparkfun 9DOF Razor IMU AHRS
+/***************************************************************************************************************
+* Razor AHRS Firmware v1.3
 * 9 Degree of Measurement Attitude and Heading Reference System
-* Version 1.3
+* for Sparkfun 9DOF Razor IMU (SEN-10125 and SEN-10736)
 *
 * Released under GNU LGPL (Lesser General Public License) v3.0
 *
-* TODO: http://dev.qu.tu-berlin.de/.......
-*
 * History:
-* - Original code by Doug Weibel and Jose Julio, based on ArduIMU v1.5 by Jordi Munoz 
-    and William Premerlani, Jose Julio and Doug Weibel
-* - Updated by David Malik (david.zsolt.malik@gmail.com) for new Sparkfun 9DOF HardWare (SEN-10125)
-* - Updated and extended by Peter Bartz (peter-bartz@gmx.de)
-*       - Cleaned up, streamlined and restructured most of the code to make it more comprehensible
-* 	- Added sensor calibration (improves accuracy a lot!)
-* 	- Added binary ywa/pitch/roll output and support to synch output stream
-* 	- Added support to connect to Rovering Networks Bluetooth modules (and compatible)
-*       - TODO: add support for SEN-10736
-*       - TODO: maybe gyro works better with lower filter bandwidth (DLPF_CF) and sample rate (SMPLRT_DIV)? Ask Sascha...
-*       - TODO: use self-calibration and temperature-compensation features of the sensors
+* --------
+*   - Original code by Doug Weibel and Jose Julio, based on ArduIMU v1.5 by Jordi Munoz 
+*      and William Premerlani, Jose Julio and Doug Weibel. Thank you!
+*   - Updated by David Malik (david.zsolt.malik@gmail.com) for new Sparkfun 9DOF Razor hardware (SEN-10125).
+*   - Updated and extended by Peter Bartz (peter-bartz@gmx.de):
+*       - Cleaned up, streamlined and restructured most of the code to make it more comprehensible.
+*       - Added sensor calibration (improves precision and responsiveness a lot!).
+*       - Added binary ywa/pitch/roll output
+*       - Added basic serial command interface to set output modes/calibrate sensors/synch stream/etc.
+*       - Added support to synch automatically when using Rovering Networks Bluetooth modules (and compatible)
+*       - TODO: Added support for new version of "9DOF Razor IMU": SEN-10736.
+*       --> The output of this code is not compatible with the older versions!
+*       --> A Processing sketch to test the tracker is available.
 *
-* TODO: Put calibration values into eeprom instead of hardcoding them using #define
-* TODO: Command list
-******************************************************************/
+* TODO list:
+* ----------
+*   - Put calibration values into eeprom instead of hardcoding them using #define.
+*   - Use self-calibration and temperature-compensation features of the sensors.
+*   - Test if gyro works better with lower filter bandwidth (DLPF_CF) and/or sample rate (SMPLRT_DIV).
+*   - Runtime hardware version detection.
+*
+* Updates, bug reports and feedback: http://dev.qu.tu-berlin.de/TODO
+***************************************************************************************************************/
 
 /*
-  Razor 9DOF Hardware version - SEN-10125 and SEN-10736
+  Razor 9DOF hardware version - SEN-10125 and SEN-10736
 
   ATMega328@3.3V w/ external 8MHz resonator
   
@@ -54,8 +60,28 @@
   Transformation order: first yaw then pitch then roll.
 */
 
-#include <Wire.h>
-
+/*
+  Commands that the firmware understands:
+  
+  "#o<param>" - Set output parameter. The available options are:
+      "#o0" - Disable continuous streaming output.
+      "#o1" - Enable continuous streaming output.
+      "#ob" - Output angles in binary format (yaw/pitch/roll as binary float. So one output frame is 3x4 = 12 bytes long).
+      "#ot" - Output angles in text format (Output frames have form like "#YPR=-142.28,-5.38,33.52", followed by carriage return and line feed [\r\n]).
+      "#os" - Output (calibrated) sensor values for all 9 axes. One frame consist of three lines - one for each sensor.
+      "#oc" - Go to calibration output mode.
+      "#on" - When in calibration mode, go on to calibrate next sensor.
+    
+  "#f" - Request one output frame - useful when continuous output is disabled and updates are required in larger intervals only.
+  "#s" - Request synch token - useful to find out where the frame boundaries are in a continuous binary stream or to see if tracker is present
+          when streaming is off. The tracker will send "\r\n#SYNCH\r\n" in response (so it's possible to read using a readLine() function).
+          
+  ("#C" and "#D" - Reserved for communication with optional Bluetooth module.)
+  
+  Newline character are not required. So you could send "#ob#o1#s", which
+  would set binary output mode, enable continuous streaming output and request
+  a synch token all at once.
+*/
 
 
 
@@ -67,8 +93,8 @@
 /*****************************************************************/
 
 // Select your Razor 9DOF hardware version here by uncommenting one line!
-#define HW__RAZOR_VERSION 10125   // Meaning "SEN-10125", which uses HMC5843 magnetometer
-//#define HW__RAZOR_VERSION 10736 // Meaning "SEN-10736", which uses HMC5883L magnetometer
+#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
+//#define HW__RAZOR_VERSION 10736 // Meaning SparkFun "SEN-10736", which uses HMC5883L magnetometer
 
 
 // OUTPUT OPTIONS
@@ -90,7 +116,7 @@
 //int output_mode = OUTPUT__MODE_CALIBRATE_SENSORS; // TODO remove
 int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
-// Select if serial output is enabled per default on startup.
+// Select if serial continuous streaming output is enabled per default on startup.
 #define OUTPUT__STARTUP_STREAM_ON true  // true or false
 
 // Bluetooth
@@ -151,11 +177,12 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 // DEBUG OPTIONS
 /*****************************************************************/
-// When uncommented, gyro drift correction will not be applied
-//#define DEBUG__NO_DRIFT_CORRECTION
+// When set to true, gyro drift correction will not be applied
+#define DEBUG__NO_DRIFT_CORRECTION false
+
 
 /*****************************************************************/
-/****************** END OF USER SETUP AREA!  ********************/
+/****************** END OF USER SETUP AREA!  *********************/
 /*****************************************************************/
 
 
@@ -163,6 +190,17 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 
 
+
+
+
+
+// Check if hardware version is defined
+#ifndef HW__RAZOR_VERSION
+  // Generate compile error
+  #error YOU HAVE TO DEFINE YOUR RAZOR HARDWARE VERSION! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of SF9DOF_AHRS.pde!
+#endif
+
+#include <Wire.h>
 
 // Sensor calibration scale and offset values
 #define ACCEL_X_OFFSET ((ACCEL_X_MIN + ACCEL_X_MAX) / 2.0f)
@@ -175,9 +213,9 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define MAGN_X_OFFSET ((MAGN_X_MIN + MAGN_X_MAX) / 2.0f)
 #define MAGN_Y_OFFSET ((MAGN_Y_MIN + MAGN_Y_MAX) / 2.0f)
 #define MAGN_Z_OFFSET ((MAGN_Z_MIN + MAGN_Z_MAX) / 2.0f)
-#define MAGN_X_SCALE (10000.0f / (MAGN_X_MAX - MAGN_X_OFFSET))  // TODO 10000.0?
-#define MAGN_Y_SCALE (10000.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET))
-#define MAGN_Z_SCALE (10000.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
+#define MAGN_X_SCALE (100.0f / (MAGN_X_MAX - MAGN_X_OFFSET))
+#define MAGN_Y_SCALE (100.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET))
+#define MAGN_Z_SCALE (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
 
 
 // Gain for gyroscope (ITG-3200)
@@ -192,7 +230,7 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 // Stuff
 #define STATUS_LED_PIN 13  // Pin number of status LED
-#define GRAVITY 256.0f // TODO Arbitrary value as "1G reference" used for accelerometer calibration
+#define GRAVITY 256.0f // "1G reference" used for DCM filter and accelerometer calibration
 #define TO_RAD(x) (x * 0.01745329252)  // *pi/180
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
@@ -319,8 +357,7 @@ void setup()
   delay(20);
   I2C_Init();
   Accel_Init();
-  Read_Accel();
-  Compass_Init();
+  Magn_Init();
   Gyro_Init();
   delay(20);
   reset_sensor_fusion();
@@ -342,7 +379,7 @@ void loop()
     if (Serial.read() == '#') // Start of new control message
     {
       int command = Serial.read(); // Commands
-      if (command == 'g') // request one output frame (_g_et)
+      if (command == 'f') // request one output _f_rame
         output_single_on = true;
       else if (command == 's') // _s_ynch request
       {
@@ -350,19 +387,13 @@ void loop()
         Serial.println();  // Output on new line
         Serial.println("#SYNCH");
       }
-      if (command == 'p') // incoming _p_ing
-      {
-        // Send PONG
-        Serial.println();  // Output on new line
-        Serial.println("#PONG");
-      }
       else if (command == 'o') // Set _o_utput mode
       {
         while (Serial.available() < 1) { } // Wait for another byte to arrive
         int output_param = Serial.read();
-        if (output_param == 'n')  // _n_ext output mode
+        if (output_param == 'n')  // Calibrate _n_ext sensor
         {
-          output_mode = (output_mode + 1) % 4;
+          curr_calibration_sensor = (curr_calibration_sensor + 1) % 3;
           reset_calibration_session_flag = true;
         }
         else if (output_param == 't') // Output angles as _t_ext
@@ -386,11 +417,6 @@ void loop()
           reset_calibration_session_flag = true;
           turn_output_stream_on();
         }
-      }
-      else if (command == 'n') // Calibrate _n_ext sensor
-      {
-        curr_calibration_sensor = (curr_calibration_sensor + 1) % 3;
-        reset_calibration_session_flag = true;
       }
 #if OUTPUT__HAS_RN_BLUETOOTH == true
       // Read messages from bluetooth module

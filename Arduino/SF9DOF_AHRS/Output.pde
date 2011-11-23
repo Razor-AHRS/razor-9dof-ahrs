@@ -69,19 +69,19 @@ void output_calibration(int calibration_sensor)
 
 void output_sensors()
 {
-  Serial.print("accelerometer: ");
-  Serial.print(accel[0]); Serial.print("  ");
-  Serial.print(accel[1]); Serial.print("  ");
+  Serial.print("#ACC=");
+  Serial.print(accel[0]); Serial.print(",");
+  Serial.print(accel[1]); Serial.print(",");
   Serial.print(accel[2]); Serial.println();
 
-  Serial.print("magnetometer: ");
-  Serial.print(magnetom[0]); Serial.print("  ");
-  Serial.print(magnetom[1]); Serial.print("  ");
+  Serial.print("#MAG=");
+  Serial.print(magnetom[0]); Serial.print(",");
+  Serial.print(magnetom[1]); Serial.print(",");
   Serial.print(magnetom[2]); Serial.println();
 
-  Serial.print("gyroscope: ");
-  Serial.print(gyro[0]); Serial.print("  ");
-  Serial.print(gyro[1]); Serial.print("  ");
+  Serial.print("#GYR=");
+  Serial.print(gyro[0]); Serial.print(",");
+  Serial.print(gyro[1]); Serial.print(",");
   Serial.print(gyro[2]); Serial.println();
 }
 
