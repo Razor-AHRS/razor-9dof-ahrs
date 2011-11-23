@@ -1,20 +1,20 @@
-// Output angles: roll, pitch, yaw
+// Output angles: yaw, pitch, roll
 void output_angles()
 {
   if (output_mode == OUTPUT__MODE_ANGLES_BINARY)
   {
-    float rpy[3];  
-    rpy[0] = TO_DEG(roll);
-    rpy[1] = TO_DEG(pitch);
-    rpy[2] = TO_DEG(yaw);
-    Serial.write((byte*) rpy, 12); // No new-line
+    float ypr[3];  
+    ypr[0] = TO_DEG(yaw);
+    ypr[1] = TO_DEG(pitch);
+    ypr[2] = TO_DEG(roll);
+    Serial.write((byte*) ypr, 12); // No new-line
   }
   else if (output_mode == OUTPUT__MODE_ANGLES_TEXT)
   {
-      Serial.print("!ANG:");
-      Serial.print(TO_DEG(roll)); Serial.print(",");
+      Serial.print("#YPR=");
+      Serial.print(TO_DEG(yaw)); Serial.print(",");
       Serial.print(TO_DEG(pitch)); Serial.print(",");
-      Serial.print(TO_DEG(yaw)); Serial.println();
+      Serial.print(TO_DEG(roll)); Serial.println();
   }
 }
 
