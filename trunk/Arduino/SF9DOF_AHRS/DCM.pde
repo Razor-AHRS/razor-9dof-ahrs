@@ -83,7 +83,7 @@ void Matrix_update(void)
   Vector_Add(&Omega[0], &Gyro_Vector[0], &Omega_I[0]);  //adding proportional term
   Vector_Add(&Omega_Vector[0], &Omega[0], &Omega_P[0]); //adding Integrator term
   
-#ifdef DEBUG__NO_DRIFT_CORRECTION // Do not use drift correction
+#if DEBUG__NO_DRIFT_CORRECTION == true // Do not use drift correction
   Update_Matrix[0][0]=0;
   Update_Matrix[0][1]=-G_Dt*Gyro_Vector[2];//-z
   Update_Matrix[0][2]=G_Dt*Gyro_Vector[1];//y

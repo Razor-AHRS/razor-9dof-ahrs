@@ -60,7 +60,7 @@ void Read_Accel()
     Serial.println("!ERR: reading accelerometer");
 }
 
-void Compass_Init()
+void Magn_Init()
 {
   Wire.beginTransmission(MAGN_ADDRESS);
   Wire.send(0x02); 
@@ -136,7 +136,7 @@ void Gyro_Init()
   
 }
 
-// Reads x,y and z accelerometer registers
+// Reads x, y and z gyroscope registers
 void Read_Gyro()
 {
   int i = 0;
