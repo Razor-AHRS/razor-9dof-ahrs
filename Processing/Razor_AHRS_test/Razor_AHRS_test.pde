@@ -6,7 +6,8 @@
 * Written by Peter Bartz (peter-bartz@gmx.de)
 * Released under GNU LGPL (Lesser General Public License) v3.0
 *
-* Updates, bug reports and feedback: http://dev.qu.tu-berlin.de/TODO
+* Infos, updates, bug reports and feedback:
+* http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 ****************************************************************************/
 
 import processing.opengl.*;

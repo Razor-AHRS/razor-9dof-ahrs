@@ -5,11 +5,18 @@
 *
 * Released under GNU LGPL (Lesser General Public License) v3.0
 *
+* Infos, updates, bug reports and feedback:
+* http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
+*
+*
 * History:
 * --------
-*   - Original code by Doug Weibel and Jose Julio, based on ArduIMU v1.5 by Jordi Munoz 
-*      and William Premerlani, Jose Julio and Doug Weibel. Thank you!
-*   - Updated by David Malik (david.zsolt.malik@gmail.com) for new Sparkfun 9DOF Razor hardware (SEN-10125).
+*   - Original code (http://code.google.com/p/sf9domahrs/) by Doug Weibel and Jose Julio,
+*     based on ArduIMU v1.5 by Jordi Munoz and William Premerlani, Jose Julio and Doug Weibel. Thank you!
+
+*   - Updated code (http://groups.google.com/group/sf_9dof_ahrs_update/) by David Malik (david.zsolt.malik@gmail.com)
+*     for new Sparkfun 9DOF Razor hardware (SEN-10125)
+
 *   - Updated and extended by Peter Bartz (peter-bartz@gmx.de):
 *       - Cleaned up, streamlined and restructured most of the code to make it more comprehensible.
 *       - Added sensor calibration (improves precision and responsiveness a lot!).
@@ -26,8 +33,6 @@
 *   - Use self-calibration and temperature-compensation features of the sensors.
 *   - Test if gyro works better with lower filter bandwidth (DLPF_CF) and/or sample rate (SMPLRT_DIV).
 *   - Runtime hardware version detection.
-*
-* Updates, bug reports and feedback: http://dev.qu.tu-berlin.de/TODO
 ***************************************************************************************************************/
 
 /*
@@ -113,7 +118,6 @@
 #define OUTPUT__MODE_ANGLES_BINARY 2 // Outputs yaw/pitch/roll in degrees as binary float
 #define OUTPUT__MODE_SENSORS_TEXT 3 // Outputs (calibrated) sensor values for all 9 axes as text
 // Select your startup output mode here!
-//int output_mode = OUTPUT__MODE_CALIBRATE_SENSORS; // TODO remove
 int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 // Select if serial continuous streaming output is enabled per default on startup.
@@ -134,7 +138,7 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 // Sensor calibration values
 /*****************************************************************/
 // Put MIN/MAX and OFFSET readings for your board here!
-// How to calibrate? Read the wiki: TODO
+// TODO: How to calibrate? Read the tutorial at http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 #define ACCEL_X_MIN ((float) -250)
 #define ACCEL_X_MAX ((float) 250)
 #define ACCEL_Y_MIN ((float) -250)
@@ -197,7 +201,7 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 // Check if hardware version is defined
 #ifndef HW__RAZOR_VERSION
   // Generate compile error
-  #error YOU HAVE TO DEFINE YOUR RAZOR HARDWARE VERSION! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of SF9DOF_AHRS.pde!
+  #error YOU HAVE TO DEFINE YOUR RAZOR HARDWARE VERSION! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.pde!
 #endif
 
 #include <Wire.h>
