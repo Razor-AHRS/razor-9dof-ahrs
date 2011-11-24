@@ -23,6 +23,7 @@
 *       - Added binary ywa/pitch/roll output
 *       - Added basic serial command interface to set output modes/calibrate sensors/synch stream/etc.
 *       - Added support to synch automatically when using Rovering Networks Bluetooth modules (and compatible)
+*       - Wrote new easier to use test program (using Processing)
 *       - TODO: Added support for new version of "9DOF Razor IMU": SEN-10736.
 *       --> The output of this code is not compatible with the older versions!
 *       --> A Processing sketch to test the tracker is available.
@@ -71,15 +72,20 @@
   "#o<param>" - Set output parameter. The available options are:
       "#o0" - Disable continuous streaming output.
       "#o1" - Enable continuous streaming output.
-      "#ob" - Output angles in binary format (yaw/pitch/roll as binary float. So one output frame is 3x4 = 12 bytes long).
-      "#ot" - Output angles in text format (Output frames have form like "#YPR=-142.28,-5.38,33.52", followed by carriage return and line feed [\r\n]).
-      "#os" - Output (calibrated) sensor values for all 9 axes. One frame consist of three lines - one for each sensor.
+      "#ob" - Output angles in binary format (yaw/pitch/roll as binary float, so one output frame
+              is 3x4 = 12 bytes long).
+      "#ot" - Output angles in text format (Output frames have form like "#YPR=-142.28,-5.38,33.52",
+              followed by carriage return and line feed [\r\n]).
+      "#os" - Output (calibrated) sensor values for all 9 axes. One frame consist of
+              three lines - one for each sensor.
       "#oc" - Go to calibration output mode.
       "#on" - When in calibration mode, go on to calibrate next sensor.
     
-  "#f" - Request one output frame - useful when continuous output is disabled and updates are required in larger intervals only.
-  "#s" - Request synch token - useful to find out where the frame boundaries are in a continuous binary stream or to see if tracker is present
-          when streaming is off. The tracker will send "\r\n#SYNCH\r\n" in response (so it's possible to read using a readLine() function).
+  "#f" - Request one output frame - useful when continuous output is disabled and updates are
+         required in larger intervals only.
+  "#s" - Request synch token - useful to find out where the frame boundaries are in a continuous
+         binary stream or to see if tracker is present when streaming is off. The tracker will
+         send "#SYNCH\r\n" in response (so it's possible to read using a readLine() function).
           
   ("#C" and "#D" - Reserved for communication with optional Bluetooth module.)
   
@@ -388,7 +394,6 @@ void loop()
       else if (command == 's') // _s_ynch request
       {
         // Send synch message
-        Serial.println();  // Output on new line
         Serial.println("#SYNCH");
       }
       else if (command == 'o') // Set _o_utput mode

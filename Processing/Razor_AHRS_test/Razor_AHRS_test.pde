@@ -116,9 +116,8 @@ void setup() {
   println(Serial.list());
   String portName = Serial.list()[SERIAL_PORT_NUM];
   println();
-  println("MAKE SURE YOU SET THE RIGHT SERIAL PORT NUMBER IN THE CODE!");
+  println("HAVE A LOOK AT THE LIST ABOVE AND SET THE RIGHT SERIAL PORT NUMBER IN THE CODE!");
   println("  -> Using port " + SERIAL_PORT_NUM + ": " + portName);
-  println();
   serial = new Serial(this, portName, SERIAL_PORT_BAUD_RATE);
 }
 
