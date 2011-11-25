@@ -23,7 +23,7 @@ void output_calibration(int calibration_sensor)
   if (calibration_sensor == 0)  // Accelerometer
   {
     // Output MIN/MAX values
-    Serial.print("accel min/max (x y z): ");
+    Serial.print("accel x,y,z (min/max) = ");
     for (int i = 0; i < 3; i++) {
       if (accel[i] < accel_min[i]) accel_min[i] = accel[i];
       if (accel[i] > accel_max[i]) accel_max[i] = accel[i];
@@ -37,7 +37,7 @@ void output_calibration(int calibration_sensor)
   else if (calibration_sensor == 1)  // Magnetometer
   {
     // Output MIN/MAX values
-    Serial.print("magn min/max (x y z): ");
+    Serial.print("magn x,y,z (min/max) = ");
     for (int i = 0; i < 3; i++) {
       if (magnetom[i] < magnetom_min[i]) magnetom_min[i] = magnetom[i];
       if (magnetom[i] > magnetom_max[i]) magnetom_max[i] = magnetom[i];
@@ -56,7 +56,7 @@ void output_calibration(int calibration_sensor)
     gyro_num_samples++;
       
     // Output current and averaged gyroscope values
-    Serial.print("gyroscope current/average (x y z): ");
+    Serial.print("gyro x,y,z (current/average) = ");
     for (int i = 0; i < 3; i++) {
       Serial.print(gyro[i]);
       Serial.print("/");
