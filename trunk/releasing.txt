@@ -1,0 +1,13 @@
+- Arduino code:
+	- uncomment all hardware versions under "USER SETUP AREA" / "HARDWARE OPTIONS"
+	- set default calibration
+- Processing code:
+	- set serial port number to 0
+- add latest tutorial (from the wiki)?
+	- better leave it online and add old versions to "files" section!
+- put updated version codes and copyright years everywhere
+- duplicate the whole thing and
+	- raname outer folder: "Razor AHRS v<version>"
+	- strip all .DS_Store and .svn files/folders
+	- strip this file
+- zip up and rename zip file: "Razor AHRS Firmware v<version>.zip"

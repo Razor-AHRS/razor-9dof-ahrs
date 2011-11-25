@@ -1,14 +1,15 @@
-/****************************************************************************
-* Test Sketch for Razor AHRS v1.3
+/*************************************************************************************
+* Test Sketch for Razor AHRS v1.3.0
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
+* Released under GNU GPL (General Public License) v3.0
+* Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
-* Released under GNU LGPL (Lesser General Public License) v3.0
 *
 * Infos, updates, bug reports and feedback:
-* http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
-****************************************************************************/
+*     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
+*************************************************************************************/
 
 import processing.opengl.*;
 import processing.serial.*;

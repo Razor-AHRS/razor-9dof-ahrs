@@ -1,48 +1,44 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.3
+* Razor AHRS Firmware v1.3.0
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU (SEN-10125 and SEN-10736)
 *
-* Released under GNU LGPL (Lesser General Public License) v3.0
+* Released under GNU GPL (General Public License) v3.0
+* Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 *
 * Infos, updates, bug reports and feedback:
-* http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
+*     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 *
 *
 * History:
-* --------
-*   - Original code (http://code.google.com/p/sf9domahrs/) by Doug Weibel and Jose Julio,
+*   * Original code (http://code.google.com/p/sf9domahrs/) by Doug Weibel and Jose Julio,
 *     based on ArduIMU v1.5 by Jordi Munoz and William Premerlani, Jose Julio and Doug Weibel. Thank you!
-
-*   - Updated code (http://groups.google.com/group/sf_9dof_ahrs_update/) by David Malik (david.zsolt.malik@gmail.com)
-*     for new Sparkfun 9DOF Razor hardware (SEN-10125)
-
-*   - Updated and extended by Peter Bartz (peter-bartz@gmx.de):
-*       - Cleaned up, streamlined and restructured most of the code to make it more comprehensible.
-*       - Added sensor calibration (improves precision and responsiveness a lot!).
-*       - Added binary ywa/pitch/roll output
-*       - Added basic serial command interface to set output modes/calibrate sensors/synch stream/etc.
-*       - Added support to synch automatically when using Rovering Networks Bluetooth modules (and compatible)
-*       - Wrote new easier to use test program (using Processing)
-*       - TODO: Added support for new version of "9DOF Razor IMU": SEN-10736.
+*
+*   * Updated code (http://groups.google.com/group/sf_9dof_ahrs_update/) by David Malik (david.zsolt.malik@gmail.com)
+*     for new Sparkfun 9DOF Razor hardware (SEN-10125).
+*
+*   * Updated and extended by Peter Bartz (peter-bartz@gmx.de):
+*       * Cleaned up, streamlined and restructured most of the code to make it more comprehensible.
+*       * Added sensor calibration (improves precision and responsiveness a lot!).
+*       * Added binary yaw/pitch/roll output.
+*       * Added basic serial command interface to set output modes/calibrate sensors/synch stream/etc.
+*       * Added support to synch automatically when using Rovering Networks Bluetooth modules (and compatible).
+*       * Wrote new easier to use test program (using Processing).
+*       * Added support for new version of "9DOF Razor IMU": SEN-10736.
 *       --> The output of this code is not compatible with the older versions!
 *       --> A Processing sketch to test the tracker is available.
 *
-* TODO list:
-* ----------
-*   - Put calibration values into eeprom instead of hardcoding them using #define.
-*   - Use self-calibration and temperature-compensation features of the sensors.
-*   - Test if gyro works better with lower filter bandwidth (DLPF_CF) and/or sample rate (SMPLRT_DIV).
-*   - Runtime hardware version detection.
+* TODOs:
+*   * Put calibration values into EEPROM instead of hardcoding them using #define.
+*   * Use self-test and temperature-compensation features of the sensors.
+*   * Test if gyro works better with lower filter bandwidth (DLPF_CF) and/or lower sample rate (SMPLRT_DIV).
+*   * Runtime hardware version detection.
 ***************************************************************************************************************/
 
 /*
-  Razor 9DOF hardware version - SEN-10125 and SEN-10736
+  9DOF Razor IMU hardware version - SEN-10125 and SEN-10736
 
-  ATMega328@3.3V w/ external 8MHz resonator
-  
-  High Fuse DA
-  Low Fuse FF
+  ATMega328@3.3V, 8MHz
 
   ADXL345  : Accelerometer
   HMC5843  : Magnetometer on SEN-10125
@@ -50,7 +46,7 @@
   ITG-3200 : Gyro
 
   Programmer  : 3.3v FTDI
-  Arduino IDE : Select board "Arduino Pro or Pro Mini (3.3v, 8mhz) w/ATmega328"
+  Arduino IDE : Select board "Arduino Pro or Pro Mini (3.3v, 8Mhz) w/ATmega328"
 */
 
 /*
@@ -102,9 +98,8 @@
 
 // HARDWARE OPTIONS
 /*****************************************************************/
-
 // Select your Razor 9DOF hardware version here by uncommenting one line!
-#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
+//#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
 //#define HW__RAZOR_VERSION 10736 // Meaning SparkFun "SEN-10736", which uses HMC5883L magnetometer
 
 
@@ -141,10 +136,12 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define OUTPUT__HAS_RN_BLUETOOTH false  // true or false
 
 
-// Sensor calibration values
+// SENSOR CALIBRATION
 /*****************************************************************/
+// How to calibrate? Read the tutorial at http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 // Put MIN/MAX and OFFSET readings for your board here!
-// TODO: How to calibrate? Read the tutorial at http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
+// Accelerometer
+// "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
 #define ACCEL_X_MIN ((float) -250)
 #define ACCEL_X_MAX ((float) 250)
 #define ACCEL_Y_MIN ((float) -250)
@@ -152,6 +149,8 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define ACCEL_Z_MIN ((float) -250)
 #define ACCEL_Z_MAX ((float) 250)
 
+// Magnetometer
+// "magn x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
 #define MAGN_X_MIN ((float) -600)
 #define MAGN_X_MAX ((float) 600)
 #define MAGN_Y_MIN ((float) -600)
@@ -159,12 +158,15 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define MAGN_Z_MIN ((float) -600)
 #define MAGN_Z_MAX ((float) 600)
 
+// Gyroscpe
+// "gyro x,y,z (current/average) = .../OFFSET_X  .../OFFSET_Y  .../OFFSET_Z
 #define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
 
 /*
-// Calibration example: 
+// Calibration example:
+// "accel x,y,z (min/max) = -270.00/266.00  -251.00/277.00  -296.00/231.00"
 #define ACCEL_X_MIN ((float) -270)
 #define ACCEL_X_MAX ((float) 266)
 #define ACCEL_Y_MIN ((float) -251)
@@ -172,6 +174,7 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define ACCEL_Z_MIN ((float) -296)
 #define ACCEL_Z_MAX ((float) 231)
 
+// "magn x,y,z (min/max) = -564.00/656.00  -585.00/635.00  -550.00/564.00"
 #define MAGN_X_MIN ((float) -564)
 #define MAGN_X_MAX ((float) 656)
 #define MAGN_Y_MIN ((float) -585)
@@ -179,9 +182,10 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define MAGN_Z_MIN ((float) -550)
 #define MAGN_Z_MAX ((float) 564)
 
-#define GYRO_AVERAGE_OFFSET_X ((float) -28.8)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 100.6)
-#define GYRO_AVERAGE_OFFSET_Z ((float) -5.9)
+//"gyro x,y,z (current/average) = -29.00/-27.98  102.00/100.51  -5.00/-5.85"
+#define GYRO_AVERAGE_OFFSET_X ((float) -27.98)
+#define GYRO_AVERAGE_OFFSET_Y ((float) 100.51)
+#define GYRO_AVERAGE_OFFSET_Z ((float) -5.85)
 */
 
 
@@ -286,7 +290,7 @@ float G_Dt; // Integration time for DCM algorithm
 // Output-state variables
 boolean output_stream_on;
 boolean output_single_on;
-int curr_calibration_sensor = 1;
+int curr_calibration_sensor = 0;
 boolean reset_calibration_session_flag = true;
 
 void read_sensors() {
