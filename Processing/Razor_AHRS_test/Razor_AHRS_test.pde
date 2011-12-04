@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Test Sketch for Razor AHRS v1.3.0
+* Test Sketch for Razor AHRS v1.3.1
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
@@ -10,6 +10,14 @@
 * Infos, updates, bug reports and feedback:
 *     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 *************************************************************************************/
+
+// Last changed: 29-Nov-2011
+
+/*
+  NOTE: There seems to be a bug with the serial library in the latest Processing
+  versions 1.5 and 1.5.1: "WARNING: RXTX Version mismatch ...". The previous version
+  1.2.1 works fine and is still available on the Processing download page.
+*/
 
 import processing.opengl.*;
 import processing.serial.*;
@@ -74,14 +82,18 @@ void drawBoard() {
   rotateX(-radians(pitch));
   rotateZ(radians(roll)); 
 
+  // Board body
   fill(255, 0, 0);
   box(250, 20, 400);
   
+  // Forward-arrow
+  pushMatrix();
   translate(0, 0, -200);
   scale(0.5f, 0.2f, 0.25f);
   fill(0, 255, 0);
   drawArrow(1.0f, 2.0f);
-  
+  popMatrix();
+    
   popMatrix();
 }
 
@@ -135,6 +147,7 @@ void setupRazor() {
   // Set Razor output parameters
   serial.write("#ob");  // Turn on binary output
   serial.write("#o1");  // Turn on continuous streaming output
+  serial.write("#oe0"); // Disable error message output
   
   // Synch with Razor
   serial.clear();  // Clear input buffer up to here
@@ -201,8 +214,8 @@ void keyPressed() {
     case '1':  // Turn Razor's continuous output stream on
       serial.write("#o1");
       break;
-    case 'g':  // Request one single yaw/pitch/roll frame from Razor (use when continuous streaming is off)
-      serial.write("#g");
+    case 'f':  // Request one single yaw/pitch/roll frame from Razor (use when continuous streaming is off)
+      serial.write("#f");
       break;
     case 'a':  // Align screen with Razor
       yawOffset = yaw;

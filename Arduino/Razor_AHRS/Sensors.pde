@@ -56,8 +56,11 @@ void Read_Accel()
     accel[1] = sensor_sign[3] * ((((int) buff[1]) << 8) | buff[0]);    // Y axis (internal sensor x axis)
     accel[2] = sensor_sign[5] * ((((int) buff[5]) << 8) | buff[4]);    // Z axis
   }
-  else if (output_mode != OUTPUT__MODE_ANGLES_BINARY)
-    Serial.println("!ERR: reading accelerometer");
+  else
+  {
+    num_accel_errors++;
+    if (output_errors) Serial.println("!ERR: reading accelerometer");
+  }
 }
 
 void Magn_Init()
@@ -65,13 +68,13 @@ void Magn_Init()
   Wire.beginTransmission(MAGN_ADDRESS);
   Wire.send(0x02); 
   Wire.send(0x00);   // Set continouos mode (default to 10Hz)
-  Wire.endTransmission(); //end transmission
-  delay(10);
+  Wire.endTransmission();
+  delay(5);
 
   Wire.beginTransmission(MAGN_ADDRESS);
   Wire.send(0x00);
-  Wire.send(0b00011000);   // Set 50Hz
-  Wire.endTransmission(); //end transmission
+  Wire.send(0b00011000);  // Set 50Hz
+  Wire.endTransmission();
   delay(5);
 }
 
@@ -107,8 +110,11 @@ void Read_Magn()
     magnetom[2] = sensor_sign[8] * ((((int) buff[2]) << 8) | buff[3]);    // Z axis
 #endif
   }
-  else if (output_mode != OUTPUT__MODE_ANGLES_BINARY)
-    Serial.println("!ERR: reading magnetometer");
+  else
+  {
+    num_magn_errors++;
+    if (output_errors) Serial.println("!ERR: reading magnetometer");
+  }
 }
 
 void Gyro_Init()
@@ -118,22 +124,29 @@ void Gyro_Init()
   Wire.send(0x3E);
   Wire.send(0x80);
   Wire.endTransmission(); //end transmission
-  delay(10);
+  delay(5);
   
   /* Select full-scale range of the gyro sensors */
+  /* Set LP filter bandwidth to 42Hz */
   Wire.beginTransmission(GYRO_ADDRESS);
   Wire.send(0x16);
-  Wire.send(0x18);    // DLPF_CFG = 0, FS_SEL = 3
+  Wire.send(0x1B);    // DLPF_CFG = 3, FS_SEL = 3
   Wire.endTransmission(); //end transmission
-  delay(10);
+  delay(5);
   
-  /* dont know... */
+  /* Set sample rato to 50Hz */
+  Wire.beginTransmission(GYRO_ADDRESS);
+  Wire.send(0x15);
+  Wire.send(0x0A);        //  SMPLRT_DIV = 10 (50Hz)
+  Wire.endTransmission();
+  delay(5);
+
+  /* Set clock to PLL with z gyro reference */
   Wire.beginTransmission(GYRO_ADDRESS);
   Wire.send(0x3E);
   Wire.send(0x00);
   Wire.endTransmission(); //end transmission
-  delay(10);
-  
+  delay(5);
 }
 
 // Reads x, y and z gyroscope registers
@@ -162,6 +175,9 @@ void Read_Gyro()
     gyro[1] = sensor_sign[0] * ((((int) buff[0]) << 8) | buff[1]);    // Y axis (internal sensor x axis)
     gyro[2] = sensor_sign[2] * ((((int) buff[4]) << 8) | buff[5]);    // Z axis
   }
-  else if (output_mode != OUTPUT__MODE_ANGLES_BINARY)
-    Serial.println("!ERR: reading gyroscope");
+  else
+  {
+    num_gyro_errors++;
+    if (output_errors) Serial.println("!ERR: reading gyroscope");
+  }
 }

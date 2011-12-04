@@ -1,5 +1,5 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.3.0
+* Razor AHRS Firmware v1.3.1
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU (SEN-10125 and SEN-10736)
 *
@@ -18,6 +18,7 @@
 *     for new Sparkfun 9DOF Razor hardware (SEN-10125).
 *
 *   * Updated and extended by Peter Bartz (peter-bartz@gmx.de):
+*     * v1.3.0
 *       * Cleaned up, streamlined and restructured most of the code to make it more comprehensible.
 *       * Added sensor calibration (improves precision and responsiveness a lot!).
 *       * Added binary yaw/pitch/roll output.
@@ -27,13 +28,17 @@
 *       * Added support for new version of "9DOF Razor IMU": SEN-10736.
 *       --> The output of this code is not compatible with the older versions!
 *       --> A Processing sketch to test the tracker is available.
+*     * v1.3.1
+*       * Initializing rotation matrix based on start-up sensor readings -> orientation OK right away
+*       * Adjusted gyro low-pass filter and output rate settings
 *
 * TODOs:
 *   * Put calibration values into EEPROM instead of hardcoding them using #define.
 *   * Use self-test and temperature-compensation features of the sensors.
-*   * Test if gyro works better with lower filter bandwidth (DLPF_CF) and/or lower sample rate (SMPLRT_DIV).
 *   * Runtime hardware version detection.
 ***************************************************************************************************************/
+
+// Last changed: 29-Nov-2011
 
 /*
   9DOF Razor IMU hardware version - SEN-10125 and SEN-10736
@@ -76,6 +81,8 @@
               three lines - one for each sensor.
       "#oc" - Go to calibration output mode.
       "#on" - When in calibration mode, go on to calibrate next sensor.
+      "#oe0" - Disable error message output.
+      "#oe1" - Enable error message output.
     
   "#f" - Request one output frame - useful when continuous output is disabled and updates are
          required in larger intervals only.
@@ -85,9 +92,11 @@
           
   ("#C" and "#D" - Reserved for communication with optional Bluetooth module.)
   
-  Newline character are not required. So you could send "#ob#o1#s", which
+  Newline characters are not required. So you could send "#ob#o1#s", which
   would set binary output mode, enable continuous streaming output and request
   a synch token all at once.
+  
+  The status LED will be on if streaming output is enabled and off otherwise.
 */
 
 
@@ -124,14 +133,16 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 // Select if serial continuous streaming output is enabled per default on startup.
 #define OUTPUT__STARTUP_STREAM_ON true  // true or false
 
+// If set true, an error message will be output if we fail to read sensor data.
+// Message format: "!ERR: reading <sensor>", followed by "\r\n".
+boolean output_errors = false;  // true or false
+
 // Bluetooth
 // Set this to true, if you have a Rovering Networks Bluetooth Module attached.
 // The connect/disconnect message prefix of the module has to be set to "#".
 // (Refer to manual, it can be set like this: SO,#)
-// Using this has two effects:
-//  1. The status LED will reflect the connection status (on/off)
-//  2. Output via serial port will only happen as long as we're connected.
-//     That way it's very easy to synchronize receiver and sender just by connecting/disconnecting.
+// When using this, streaming output will only be enabled as long as we're connected. That way
+// receiver and sender are synchronzed easily just by connecting/disconnecting.
 // NOTE: When using this, OUTPUT__STARTUP_STREAM_ON has no effect!
 #define OUTPUT__HAS_RN_BLUETOOTH false  // true or false
 
@@ -158,7 +169,7 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 #define MAGN_Z_MIN ((float) -600)
 #define MAGN_Z_MAX ((float) 600)
 
-// Gyroscpe
+// Gyroscope
 // "gyro x,y,z (current/average) = .../OFFSET_X  .../OFFSET_Y  .../OFFSET_Z
 #define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
@@ -166,26 +177,26 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 /*
 // Calibration example:
-// "accel x,y,z (min/max) = -270.00/266.00  -251.00/277.00  -296.00/231.00"
-#define ACCEL_X_MIN ((float) -270)
-#define ACCEL_X_MAX ((float) 266)
-#define ACCEL_Y_MIN ((float) -251)
-#define ACCEL_Y_MAX ((float) 277)
-#define ACCEL_Z_MIN ((float) -296)
-#define ACCEL_Z_MAX ((float) 231)
+// "accel x,y,z (min/max) = -278.00/270.00  -254.00/284.00  -294.00/235.00"
+#define ACCEL_X_MIN ((float) -278)
+#define ACCEL_X_MAX ((float) 270)
+#define ACCEL_Y_MIN ((float) -254)
+#define ACCEL_Y_MAX ((float) 284)
+#define ACCEL_Z_MIN ((float) -294)
+#define ACCEL_Z_MAX ((float) 235)
 
-// "magn x,y,z (min/max) = -564.00/656.00  -585.00/635.00  -550.00/564.00"
-#define MAGN_X_MIN ((float) -564)
-#define MAGN_X_MAX ((float) 656)
-#define MAGN_Y_MIN ((float) -585)
-#define MAGN_Y_MAX ((float) 635)
-#define MAGN_Z_MIN ((float) -550)
-#define MAGN_Z_MAX ((float) 564)
+// "magn x,y,z (min/max) = -511.00/581.00  -516.00/568.00  -489.00/486.00"
+#define MAGN_X_MIN ((float) -511)
+#define MAGN_X_MAX ((float) 581)
+#define MAGN_Y_MIN ((float) -516)
+#define MAGN_Y_MAX ((float) 568)
+#define MAGN_Z_MIN ((float) -489)
+#define MAGN_Z_MAX ((float) 486)
 
-//"gyro x,y,z (current/average) = -29.00/-27.98  102.00/100.51  -5.00/-5.85"
-#define GYRO_AVERAGE_OFFSET_X ((float) -27.98)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 100.51)
-#define GYRO_AVERAGE_OFFSET_Z ((float) -5.85)
+//"gyro x,y,z (current/average) = -32.00/-34.82  102.00/100.41  -16.00/-16.38"
+#define GYRO_AVERAGE_OFFSET_X ((float) -34.82)
+#define GYRO_AVERAGE_OFFSET_Y ((float) 100.41)
+#define GYRO_AVERAGE_OFFSET_Z ((float) -16.38)
 */
 
 
@@ -193,6 +204,8 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 /*****************************************************************/
 // When set to true, gyro drift correction will not be applied
 #define DEBUG__NO_DRIFT_CORRECTION false
+// Print elapsed time after each I/O loop
+#define DEBUG__PRINT_LOOP_TIME false
 
 
 /*****************************************************************/
@@ -287,11 +300,14 @@ long timestamp;
 long timestamp_old;
 float G_Dt; // Integration time for DCM algorithm
 
-// Output-state variables
+// More output-state variables
 boolean output_stream_on;
 boolean output_single_on;
 int curr_calibration_sensor = 0;
 boolean reset_calibration_session_flag = true;
+int num_accel_errors = 0;
+int num_magn_errors = 0;
+int num_gyro_errors = 0;
 
 void read_sensors() {
   Read_Gyro(); // Read gyroscope
@@ -300,11 +316,35 @@ void read_sensors() {
 }
 
 // Read every sensor and record a time stamp
+// Init DCM with unfiltered orientation
 // TODO re-init global vars?
 void reset_sensor_fusion() {
-  delay(20);
+  float temp1[3];
+  float temp2[3];
+  float xAxis[] = {1.0f, 0.0f, 0.0f};
+
   read_sensors();
   timestamp = millis();
+  
+  // GET PITCH
+  // Using y-z-plane-component/x-component of gravity vector
+  pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
+	
+  // GET ROLL
+  // Compensate pitch of gravity vector 
+  Vector_Cross_Product(temp1, accel, xAxis);
+  Vector_Cross_Product(temp2, xAxis, temp1);
+  // Normally using x-z-plane-component/y-component of compensated gravity vector
+  // roll = atan2(temp2[1], sqrt(temp2[0] * temp2[0] + temp2[2] * temp2[2]));
+  // Since we compensated for pitch, x-z-plane-component equals z-component:
+  roll = atan2(temp2[1], temp2[2]);
+  
+  // GET YAW
+  Compass_Heading();
+  yaw = MAG_Heading;
+  
+  // Init rotation matrix
+  init_rotation_matrix(DCM_Matrix, yaw, pitch, roll);
 }
 
 // Apply calibration to raw sensor readings
@@ -368,12 +408,14 @@ void setup()
   digitalWrite(STATUS_LED_PIN, LOW);
 
   // Init sensors
-  delay(20);
+  delay(50);  // Give sensors enough time to start
   I2C_Init();
   Accel_Init();
   Magn_Init();
   Gyro_Init();
-  delay(20);
+  
+  // Read sensors, init DCM algorithm
+  delay(20);  // Give sensors enough time to collect data
   reset_sensor_fusion();
 
   // Init output
@@ -420,24 +462,38 @@ void loop()
         }
         else if (output_param == 's') // Output _s_ensor values as text
           output_mode = OUTPUT__MODE_SENSORS_TEXT;
-        else if (output_param == '0')
+        else if (output_param == '0') // Disable continuous streaming output
         {
           turn_output_stream_off();
           reset_calibration_session_flag = true;
         }
-        else if (output_param == '1')
+        else if (output_param == '1') // Enable continuous streaming output
         {
           reset_calibration_session_flag = true;
           turn_output_stream_on();
+        }
+        else if (output_param == 'e') // Enable/disable _e_rror output
+        {
+          while (Serial.available() < 1) { } // Wait for another byte to arrive
+          int error_param = Serial.read();
+          if (error_param == '0') output_errors = false;
+          else if (error_param == '1') output_errors = true;
+          else if (error_param == 'c') // get error count
+          {
+            Serial.print("#AMG-ERR:");
+            Serial.print(num_accel_errors); Serial.print(",");
+            Serial.print(num_magn_errors); Serial.print(",");
+            Serial.println(num_gyro_errors);
+          }
         }
       }
 #if OUTPUT__HAS_RN_BLUETOOTH == true
       // Read messages from bluetooth module
       // For this to work, the connect/disconnect message prefix of the module has to be set to "#".
       else if (command == 'C') // Bluetooth "#CONNECT" message (does the same as "#o1")
-        turn_output_on();
+        turn_output_stream_on();
       else if (command == 'D') // Bluetooth "#DISCONNECT" message (does the same as "#o0")
-        turn_output_off();
+        turn_output_stream_off();
 #endif // OUTPUT__HAS_RN_BLUETOOTH == true
     }
     else
@@ -484,5 +540,16 @@ void loop()
     }
     
     output_single_on = false;
+    
+#if DEBUG__PRINT_LOOP_TIME == true
+    Serial.print("loop time (ms) = ");
+    Serial.println(millis() - timestamp);
+#endif
   }
+#if DEBUG__PRINT_LOOP_TIME == true
+  else
+  {
+    Serial.println("waiting...");
+  }
+#endif
 }
