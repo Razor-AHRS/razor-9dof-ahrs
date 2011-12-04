@@ -1,4 +1,4 @@
-Mac OSX / Unix / Linux C++ interface for Razor AHRS v1.3.1
+Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.3.1
 
 Released under GNU GPL (General Public License) v3.0
 Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
@@ -16,3 +16,6 @@ Compile test program:
   g++ Example.cpp RazorAHRS.cpp -Wall -D_REENTRANT -o example
 And run it:
   ./example
+
+
+Sorry, no support for Windows. But you could try to compile using cygwin. 
