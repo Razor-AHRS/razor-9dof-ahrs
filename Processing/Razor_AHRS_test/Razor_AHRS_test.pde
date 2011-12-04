@@ -11,7 +11,7 @@
 *     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 *************************************************************************************/
 
-// Last changed: 29-Nov-2011
+// Last changed: 04-Dec-2011
 
 /*
   NOTE: There seems to be a bug with the serial library in the latest Processing

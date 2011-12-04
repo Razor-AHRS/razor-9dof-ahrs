@@ -38,7 +38,7 @@
 *   * Runtime hardware version detection.
 ***************************************************************************************************************/
 
-// Last changed: 29-Nov-2011
+// Last changed: 04-Dec-2011
 
 /*
   9DOF Razor IMU hardware version - SEN-10125 and SEN-10736
@@ -138,11 +138,13 @@ int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 boolean output_errors = false;  // true or false
 
 // Bluetooth
-// Set this to true, if you have a Rovering Networks Bluetooth Module attached.
+// You can set this to true, if you have a Rovering Networks Bluetooth Module attached.
 // The connect/disconnect message prefix of the module has to be set to "#".
 // (Refer to manual, it can be set like this: SO,#)
 // When using this, streaming output will only be enabled as long as we're connected. That way
 // receiver and sender are synchronzed easily just by connecting/disconnecting.
+// It is not necessary to set this! It just makes life easier when writing code for
+// the receiving side. The Processing test sketch also works without setting this.
 // NOTE: When using this, OUTPUT__STARTUP_STREAM_ON has no effect!
 #define OUTPUT__HAS_RN_BLUETOOTH false  // true or false
 

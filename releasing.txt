@@ -7,7 +7,7 @@
 	- set serial port number to 0
 - add latest tutorial (from the wiki)?
 	- better leave it online and add old versions to "files" section!
-- put updated version codes and copyright years everywhere
+- put updated version codes, latest change dates and copyright years everywhere
 	- source code
 	- wiki
 - duplicate the whole thing and
@@ -17,3 +17,5 @@
 	- move Android and C++ code elsewhere
 - zip up and rename zip file: "Razor AHRS Firmware v<version>.zip"
 - zip Android and C++ code
+
+- tag version in SVN 
