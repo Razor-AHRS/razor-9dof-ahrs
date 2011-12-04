@@ -57,4 +57,27 @@ void Matrix_Multiply(float a[3][3], float b[3][3],float mat[3][3])
   }
 }
 
+// Init rotation matrix using euler angles
+void init_rotation_matrix(float m[3][3], float yaw, float pitch, float roll)
+{
+  float c1 = cos(roll);
+  float s1 = sin(roll);
+  float c2 = cos(pitch);
+  float s2 = sin(pitch);
+  float c3 = cos(yaw);
+  float s3 = sin(yaw);
 
+  // Euler angles, right-handed, intrinsic, XYZ convention
+  // (which means: rotate around body axes Z, Y', X'') 
+  m[0][0] = c2 * c3;
+  m[0][1] = c3 * s1 * s2 - c1 * s3;
+  m[0][2] = s1 * s3 + c1 * c3 * s2;
+
+  m[1][0] = c2 * s3;
+  m[1][1] = c1 * c3 + s1 * s2 * s3;
+  m[1][2] = c1 * s2 * s3 - c3 * s1;
+
+  m[2][0] = -s2;
+  m[2][1] = c2 * s1;
+  m[2][2] = c1 * c2;
+}
