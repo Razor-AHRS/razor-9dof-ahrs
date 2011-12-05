@@ -1,5 +1,5 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.3.1
+* Razor AHRS Firmware v1.3.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU (SEN-10125 and SEN-10736)
 *

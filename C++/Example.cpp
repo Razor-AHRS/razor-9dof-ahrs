@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Test Program: Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.3.1
+* Test Program: Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.3.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
