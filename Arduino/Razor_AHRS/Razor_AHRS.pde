@@ -31,6 +31,8 @@
 *     * v1.3.1
 *       * Initializing rotation matrix based on start-up sensor readings -> orientation OK right away
 *       * Adjusted gyro low-pass filter and output rate settings
+*     * v1.3.2
+*       * Adapted code to work with new Arduino 1.0 (and older versions still) 
 *
 * TODOs:
 *   * Put calibration values into EEPROM instead of hardcoding them using #define.
@@ -38,7 +40,7 @@
 *   * Runtime hardware version detection.
 ***************************************************************************************************************/
 
-// Last changed: 04-Dec-2011
+// Last changed: 05-Dec-2011
 
 /*
   9DOF Razor IMU hardware version - SEN-10125 and SEN-10736
@@ -474,7 +476,7 @@ void loop()
           reset_calibration_session_flag = true;
           turn_output_stream_on();
         }
-        else if (output_param == 'e') // Enable/disable _e_rror output
+        else if (output_param == 'e') // _e_rror output settings
         {
           while (Serial.available() < 1) { } // Wait for another byte to arrive
           int error_param = Serial.read();

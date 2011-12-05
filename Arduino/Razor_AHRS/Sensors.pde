@@ -5,6 +5,15 @@
 #define MAGN_ADDRESS  ((int) 0x1E) // 0x1E = 0x3C / 2
 #define GYRO_ADDRESS  ((int) 0x68) // 0x68 = 0xD0 / 2
 
+// Arduino backward compatibility macros
+#if ARDUINO >= 100
+  #define WIRE_SEND(b) Wire.write((byte) b) 
+  #define WIRE_RECEIVE() Wire.read() 
+#else
+  #define WIRE_SEND(b) Wire.send(b)
+  #define WIRE_RECEIVE() Wire.receive() 
+#endif
+
 void I2C_Init()
 {
   Wire.begin();
@@ -13,19 +22,19 @@ void I2C_Init()
 void Accel_Init()
 {
   Wire.beginTransmission(ACCEL_ADDRESS);
-  Wire.send(0x2D);  // power register
-  Wire.send(0x08);  // measurement mode
+  WIRE_SEND(0x2D);  // power register
+  WIRE_SEND(0x08);  // measurement mode
   Wire.endTransmission();
   delay(5);
   Wire.beginTransmission(ACCEL_ADDRESS);
-  Wire.send(0x31);  // Data format register
-  Wire.send(0x08);  // set to full resolution
+  WIRE_SEND(0x31);  // Data format register
+  WIRE_SEND(0x08);  // set to full resolution
   Wire.endTransmission();
   delay(5);	
   // Because our main loop runs at 50Hz we adjust the output data rate to 50Hz (25Hz bandwidth)
   Wire.beginTransmission(ACCEL_ADDRESS);
-  Wire.send(0x2C);  // Rate
-  Wire.send(0x09);  // set to 50Hz, normal operation
+  WIRE_SEND(0x2C);  // Rate
+  WIRE_SEND(0x09);  // set to 50Hz, normal operation
   Wire.endTransmission();
   delay(5);
 }
@@ -37,7 +46,7 @@ void Read_Accel()
   byte buff[6];
   
   Wire.beginTransmission(ACCEL_ADDRESS); 
-  Wire.send(0x32);        //sends address to read from
+  WIRE_SEND(0x32);        //sends address to read from
   Wire.endTransmission(); //end transmission
   
   Wire.beginTransmission(ACCEL_ADDRESS); //start transmission to device
@@ -45,7 +54,7 @@ void Read_Accel()
   
   while(Wire.available())   // ((Wire.available())&&(i<6))
   { 
-    buff[i] = Wire.receive();  // receive one byte
+    buff[i] = WIRE_RECEIVE();  // receive one byte
     i++;
   }
   Wire.endTransmission(); //end transmission
@@ -66,14 +75,14 @@ void Read_Accel()
 void Magn_Init()
 {
   Wire.beginTransmission(MAGN_ADDRESS);
-  Wire.send(0x02); 
-  Wire.send(0x00);   // Set continouos mode (default to 10Hz)
+  WIRE_SEND(0x02); 
+  WIRE_SEND(0x00);   // Set continouos mode (default to 10Hz)
   Wire.endTransmission();
   delay(5);
 
   Wire.beginTransmission(MAGN_ADDRESS);
-  Wire.send(0x00);
-  Wire.send(0b00011000);  // Set 50Hz
+  WIRE_SEND(0x00);
+  WIRE_SEND(0b00011000);  // Set 50Hz
   Wire.endTransmission();
   delay(5);
 }
@@ -84,14 +93,14 @@ void Read_Magn()
   byte buff[6];
  
   Wire.beginTransmission(MAGN_ADDRESS); 
-  Wire.send(0x03);        //sends address to read from
+  WIRE_SEND(0x03);        //sends address to read from
   Wire.endTransmission(); //end transmission
   
   Wire.beginTransmission(MAGN_ADDRESS); 
   Wire.requestFrom(MAGN_ADDRESS, 6);    // request 6 bytes from device
   while(Wire.available())   // ((Wire.available())&&(i<6))
   { 
-    buff[i] = Wire.receive();  // receive one byte
+    buff[i] = WIRE_RECEIVE();  // receive one byte
     i++;
   }
   Wire.endTransmission(); //end transmission
@@ -121,30 +130,30 @@ void Gyro_Init()
 {
   /* Power up reset defaults */
   Wire.beginTransmission(GYRO_ADDRESS);
-  Wire.send(0x3E);
-  Wire.send(0x80);
+  WIRE_SEND(0x3E);
+  WIRE_SEND(0x80);
   Wire.endTransmission(); //end transmission
   delay(5);
   
   /* Select full-scale range of the gyro sensors */
   /* Set LP filter bandwidth to 42Hz */
   Wire.beginTransmission(GYRO_ADDRESS);
-  Wire.send(0x16);
-  Wire.send(0x1B);    // DLPF_CFG = 3, FS_SEL = 3
+  WIRE_SEND(0x16);
+  WIRE_SEND(0x1B);    // DLPF_CFG = 3, FS_SEL = 3
   Wire.endTransmission(); //end transmission
   delay(5);
   
   /* Set sample rato to 50Hz */
   Wire.beginTransmission(GYRO_ADDRESS);
-  Wire.send(0x15);
-  Wire.send(0x0A);        //  SMPLRT_DIV = 10 (50Hz)
+  WIRE_SEND(0x15);
+  WIRE_SEND(0x0A);        //  SMPLRT_DIV = 10 (50Hz)
   Wire.endTransmission();
   delay(5);
 
   /* Set clock to PLL with z gyro reference */
   Wire.beginTransmission(GYRO_ADDRESS);
-  Wire.send(0x3E);
-  Wire.send(0x00);
+  WIRE_SEND(0x3E);
+  WIRE_SEND(0x00);
   Wire.endTransmission(); //end transmission
   delay(5);
 }
@@ -156,7 +165,7 @@ void Read_Gyro()
   byte buff[6];
   
   Wire.beginTransmission(GYRO_ADDRESS); 
-  Wire.send(0x1D);        //sends address to read from
+  WIRE_SEND(0x1D);        //sends address to read from
   Wire.endTransmission(); //end transmission
   
   Wire.beginTransmission(GYRO_ADDRESS); //start transmission to device
@@ -164,7 +173,7 @@ void Read_Gyro()
   
   while(Wire.available())   // ((Wire.available())&&(i<6))
   { 
-    buff[i] = Wire.receive();  // receive one byte
+    buff[i] = WIRE_RECEIVE();  // receive one byte
     i++;
   }
   Wire.endTransmission(); //end transmission
