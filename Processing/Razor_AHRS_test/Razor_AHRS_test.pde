@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Test Sketch for Razor AHRS v1.3.2
+* Test Sketch for Razor AHRS v1.3.3
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
@@ -10,8 +10,6 @@
 * Infos, updates, bug reports and feedback:
 *     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 *************************************************************************************/
-
-// Last changed: 04-Dec-2011
 
 /*
   NOTE: There seems to be a bug with the serial library in the latest Processing
@@ -151,7 +149,7 @@ void setupRazor() {
   
   // Synch with Razor
   serial.clear();  // Clear input buffer up to here
-  serial.write("#s");  // Request synch token
+  serial.write("#s00");  // Request synch token
 }
 
 float readFloat(Serial s) {
@@ -172,7 +170,7 @@ void draw() {
     if (frameCount == 2)
       setupRazor();  // Set ouput params and request synch token
     else if (frameCount > 2)
-      synched = readToken(serial, "#SYNCH\r\n");  // Look for synch token
+      synched = readToken(serial, "#SYNCH00\r\n");  // Look for synch token
     return;
   }
   

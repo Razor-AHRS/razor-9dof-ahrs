@@ -1,3 +1,5 @@
+/* This file is part of the Razor AHRS Firmware */
+
 // I2C code that reads the sensors
 
 // Sensor I2C addresses

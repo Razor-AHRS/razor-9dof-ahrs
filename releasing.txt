@@ -17,8 +17,12 @@
 - move C++ code elsewhere and
 		- rename "Razor AHRS C++ Interface v<version>"
 		- remove binaries
+- move Android code elsewhere and
+		- rename "Razor AHRS Android Java Interface v<version>"
+		- remove binaries
 - zip firmware and rename: "Razor AHRS Firmware and Test Sketch v<version>.zip"
-- zip C++ lib and rename:  "Razor AHRS Cplusplus Interface v<version>"
+- zip C++ lib and rename:  "Razor AHRS Cplusplus Interface and Test Program v<version>"
+- zip Android lib and rename: ""Razor AHRS Android Java Interface and Test App v<version>""
 
 - upload files
 - tag version in SVN 

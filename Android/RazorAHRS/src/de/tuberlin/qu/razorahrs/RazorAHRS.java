@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Android Java Interface for Razor AHRS v1.3.2
+* Android Java Interface for Razor AHRS v1.3.3
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
@@ -16,7 +16,6 @@ package de.tuberlin.qu.razorahrs;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.util.UUID;
 
 import org.apache.http.util.EncodingUtils;
@@ -32,38 +31,31 @@ import android.util.Log;
 /**
  * Class to easily interface the Razor AHRS via Bluetooth.
  * <p>
- * Beware that the Bluetooth on Android seems to be buggy on most devices (we tested). E.g. on the
- * Galaxy S quite often connecting does not work for no apparent reason. If you can't connect: try
- * again. If you still can't connect, try switching Bluetooth off and on in the system settings
- * and/or reset your Bluetooth modem by power-cycling it.
+ * Bluetooth seems to be even more picky on Android than it is anyway. Be sure to have a look at the
+ * section about Android Bluetooth in the tutorial at
+ * <a href="http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs">
+ * http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs</a>!
  * <p>
- * List of other possible Bluetooth bugs:
+ * The app using this class has to
  * <ul>
- * <li> The Android Bluetooth subsystem floods the log with messages that it overflows after a few
- * seconds.
- * <li> Canceling an in-progress connection sometimes blocks - although it shouldn't.
- * <li> Sometimes Android would half-connect, so that the connection-LED of the modem lights up, but
- * the app hangs on the connect in a non-cancelable way. Bad.
- * <li> TODO Wrong synch...
+ * <li>target Android 2.0 (API Level 5) or later.
+ * <li>specify the uses-permissions <code>BLUETOOTH</code> and <code>BLUETOOTH_ADMIN</code> in it's
+ * AndroidManifest.xml.
+ * <li>add this Library Project as a referenced library (Project Properties -> Android -> Library)
  * </ul>
- * <p>
- * TODO NOTE:
- * <ul> 
- * <li> Firmware default Bluetooth setting...
- * <li> Manifest permissions...
- * <li> Add library project...
- * </ul> 
  * <p>
  * TODOs:
  * <ul>
- * <li> Add support for USB OTG (Android device used as USB host), if using FTDI is possible.
+ * <li>Add support for USB OTG (Android device used as USB host), if using FTDI is possible.
  * </ul>
  * 
  * @author Peter Bartz
  */
 public class RazorAHRS {
 	private static final String TAG = "RazorAHRS";
-	private static final byte[] SYNCH_TOKEN = EncodingUtils.getAsciiBytes("#SYNCH\r\n");
+	private static final boolean DEBUG = false;
+	private static final String SYNCH_TOKEN = "#SYNCH";
+	private static final String NEW_LINE = "\r\n";
 	
 	// Timeout to init Razor AHRS after a Bluetooth connection has been established
 	public static final int INIT_TIMEOUT_MS = 5000;
@@ -91,9 +83,7 @@ public class RazorAHRS {
 	volatile private OutputStream outStream;
 
 	private RazorListener razorListener;
-	volatile private boolean callbacksEnabled = true;
-	// TODO remove debug messages
-	volatile private boolean debugMessagesEnabled = false;
+	private boolean callbacksEnabled = true;
 	
 	BluetoothThread btThread;
 	
@@ -116,11 +106,9 @@ public class RazorAHRS {
 	 * @param btDevice {@link android.bluetooth.BluetoothDevice BluetoothDevice} holding the Razor
 	 * 		AHRS to connect to.
 	 * @param razorListener {@link RazorListener} that will be notified of Razor AHRS events.
-	 * @param numConnectAttempts Number of attempts when connecting via Bluetooth. Often connecting
-	 * 		only works on the 3rd try or even later. Bluetooth hooray.
 	 * @throws RuntimeException thrown if one of the parameters is null.
 	 */
-	public RazorAHRS(BluetoothDevice btDevice, RazorListener razorListener, int numConnectAttempts)
+	public RazorAHRS(BluetoothDevice btDevice, RazorListener razorListener)
 			throws RuntimeException {
 		if (btDevice == null)
 			throw new RuntimeException("BluetoothDevice can not be null.");
@@ -129,7 +117,6 @@ public class RazorAHRS {
 		if (razorListener == null)
 			throw new RuntimeException("RazorListener can not be null.");
 		this.razorListener = razorListener;
-		this.numConnectAttempts = numConnectAttempts;
 	}
 
 	/**
@@ -148,26 +135,14 @@ public class RazorAHRS {
 	}
 	
 	/**
-	 * @return <code>true</code> if debug output is currently enabled, <code>false</code> else.
-	 */
-	public boolean getDebugMessagesEnabled() {
-		return debugMessagesEnabled;
-	}
-	
-	/**
-	 * Enables/disables debug output.
-	 * @param enabled
-	 */
-	public void setDebugMessagesEnabled(boolean enabled) {
-		debugMessagesEnabled = enabled;
-	}
-	
-	/**
 	 * Connect and start reading. Both is done asynchronously. {@link RazorListener#onConnectOk()}
 	 * or {@link RazorListener#onConnectFail(IOException)} callbacks will be invoked.
+	 * 
+	 * @param numConnectAttempts Number of attempts to make when trying to connect. Often connecting
+	 * 		only works on the 2rd try or later. Bluetooth hooray.
 	 */
-	public void asyncConnect() {
-		debugMsg("asyncConnect()");
+	public void asyncConnect(int numConnectAttempts) {
+		if (DEBUG) Log.d(TAG, "asyncConnect() BEGIN");
 		// Disconnect and wait for running thread to end, if needed
 		if (btThread != null) {
 			asyncDisconnect();
@@ -179,18 +154,20 @@ public class RazorAHRS {
 		// Bluetooth thread not running any more, we're definitely in DISCONNECTED state now
 
 		// Create new thread to connect to Razor AHRS and read input
+		this.numConnectAttempts = numConnectAttempts;
 		connectionState = ConnectionState.CONNECTING;
 		btThread = new BluetoothThread();
 		btThread.start();
+		if (DEBUG) Log.d(TAG, "asyncConnect() END");
 	}
 
 	/**
 	 * Disconnects from Razor AHRS. If still connecting this will also cancel the connection process.
 	 */
 	public void asyncDisconnect() {
-		debugMsg("asyncDisconnect() BEGIN");
+		if (DEBUG) Log.d(TAG, "asyncDisconnect() BEGIN");
 		synchronized (connectionState) {
-			debugMsg("asyncDisconnect() SNYNCHRONIZED");
+			if (DEBUG) Log.d(TAG, "asyncDisconnect() SNYNCHRONIZED");
 			// Don't go to USER_DISCONNECT_REQUEST state if we are disconnected already
 			if (connectionState == ConnectionState.DISCONNECTED)
 				return;
@@ -199,20 +176,37 @@ public class RazorAHRS {
 			connectionState = ConnectionState.USER_DISCONNECT_REQUEST;
 			closeSocketAndStreams();
 		}
-		debugMsg("asyncDisconnect() END");
+		if (DEBUG) Log.d(TAG, "asyncDisconnect() END");
 	}
 	
+	/**
+	 * Writes out a string using ASCII encoding. Assumes we're connected. Does not handle
+	 * exceptions itself.
+	 * 
+	 * @param text Text to send out
+	 * @throws IOException
+	 */
+	private void write(String text) throws IOException {
+		outStream.write(EncodingUtils.getAsciiBytes(text));
+	}
+
 	/**
 	 * Closes I/O streams and Bluetooth socket.
 	 */
 	private void closeSocketAndStreams() {
-		debugMsg("closeSocketAndStreams() BEGIN");
+		if (DEBUG) Log.d(TAG, "closeSocketAndStreams() BEGIN");
+		// Try to switch off streaming output of Razor in preparation of next connect
+		try {
+			if (outStream != null)
+				write("#o0");
+		} catch (IOException e) { }
+		
 		// Close Bluetooth socket => I/O operations immediately will throw exception
 		try {
 			if (btSocket != null)
 				btSocket.close();
 		} catch (IOException e) { }
-		debugMsg("closeSocketAndStreams() BT SOCKET CLOSED");
+		if (DEBUG) Log.d(TAG, "closeSocketAndStreams() BT SOCKET CLOSED");
 		
 		// Close streams
 		try {
@@ -223,24 +217,14 @@ public class RazorAHRS {
 			if (outStream != null)
 				outStream.close();
 		} catch (IOException e) { }
-		debugMsg("closeSocketAndStreams() STREAMS CLOSED");
+		if (DEBUG) Log.d(TAG, "closeSocketAndStreams() STREAMS CLOSED");
 
 		// Do not set socket and streams null, because input thread might still access them
 		//inStream = null;
 		//outStream = null;
 		//btSocket = null;
 		
-		debugMsg("closeSocketAndStreams() END");
-	}
-
-	/**
-	 * Logs message if debug output is enabled.
-	 * @param msg
-	 */
-	private void debugMsg(String msg) {
-		if (debugMessagesEnabled) {
-			Log.d(TAG, msg);
-		}
+		if (DEBUG) Log.d(TAG, "closeSocketAndStreams() END");
 	}
 
 	/**
@@ -264,33 +248,23 @@ public class RazorAHRS {
 		}
 
 		/**
-		 * Writes out a string using ASCII encoding. Assumes we're connected. Does not handle
-		 * exceptions itself.
-		 * 
-		 * @param text Text to send out
-		 * @throws IOException
-		 */
-		private void write(String text) throws IOException {
-			outStream.write(EncodingUtils.getAsciiBytes(text));
-		}
-
-		/**
-		 * Parse input stream for synch token.
+		 * Parse input stream for given token.
+		 * @param token Token to find
 		 * @param in Next byte from input stream
 		 * @return <code>true</code> if token was found
 		 */
-		private boolean readSynchToken(byte in) {
-			if (in == SYNCH_TOKEN[inBufPos++]) {
-				if (inBufPos == SYNCH_TOKEN.length) {
+		private boolean readToken(byte[] token, byte in) {
+			if (in == token[inBufPos++]) {
+				if (inBufPos == token.length) {
 					// Synch token found
 					inBufPos = 0;
-					debugMsg("Synch token found");
+					if (DEBUG) Log.d(TAG, "Token found");
 					return true;
 				}
 			} else {
 				inBufPos = 0;
 			}
-
+			
 			return false;
 		}
 
@@ -304,18 +278,21 @@ public class RazorAHRS {
 			// Start time
 			t0 = SystemClock.uptimeMillis();
 
+			/* See if Razor is there */
 			// Request synch token to see when Razor is up and running
-			write("#s");
+			final String contactSynchID = "00";
+			final String contactSynchRequest = "#s" + contactSynchID;
+			final byte[] contactSynchReply = EncodingUtils.getAsciiBytes(SYNCH_TOKEN + contactSynchID + NEW_LINE);
+			write(contactSynchRequest);
 			t1 = SystemClock.uptimeMillis();
 
-			/* See if Razor is there */
 			while (true) {
 				// Check timeout
 				t2 = SystemClock.uptimeMillis();
 				if (t2 - t1 > 200) {
 					// 200ms elapsed since last request and no answer -> request synch again.
 					// (This happens when DTR is connected and Razor resets on connect)
-					write("#s");
+					write(contactSynchRequest);
 					t1 = t2;
 				}
 				if (t2 - t0 > INIT_TIMEOUT_MS)
@@ -325,7 +302,7 @@ public class RazorAHRS {
 				// See if we can read something
 				if (inStream.available() > 0) {
 					// Synch token found?
-					if (readSynchToken(readByte()))
+					if (readToken(contactSynchReply, readByte()))
 						break;
 				} else {
 					// No data available, wait
@@ -336,8 +313,10 @@ public class RazorAHRS {
 			/* Configure tracker */
 			// Set binary output mode, enable continuous streaming, disable errors and request synch
 			// token. So we're good, no matter what state the tracker currently is in.
-			write("#ob#o1#oe0#s");
-			while (!readSynchToken(readByte())) { }
+			final String configSynchID = "01";
+			final byte[] configSynchReply = EncodingUtils.getAsciiBytes(SYNCH_TOKEN + configSynchID + NEW_LINE);
+			write("#ob#o1#oe0#s" + configSynchID);
+			while (!readToken(configSynchReply, readByte())) { }
 		}
 		
 		/**
@@ -346,32 +325,33 @@ public class RazorAHRS {
 		 */
 		private void connect() throws IOException {		
 			// Create Bluetooth socket
-			// TODO
-//			try {
-//				debugMsg("reflection connect hack 1...");
-//				Method m = btDevice.getClass().getMethod("createRfcommSocket", new Class[] { int.class });
-//				btSocket = (BluetoothSocket) m.invoke(btDevice, Integer.valueOf(1));
-//			} catch (Exception e) {
-//				throw new IOException("Could not create Bluetooth socket using reflection");
-//			}
 			btSocket = btDevice.createRfcommSocketToServiceRecord(UUID_SPP);
 			if (btSocket == null) {
-				debugMsg("btSocket is null in connect()");
+				if (DEBUG) Log.d(TAG, "btSocket is null in connect()");
 				throw new IOException("Could not create Bluetooth socket");
 			}
 			
+			// This could be used to create the RFCOMM socekt on older Android devices where
+			//createRfcommSocketToServiceRecord is not present yet.
+			/*try {
+			Method m = btDevice.getClass().getMethod("createRfcommSocket", new Class[] { int.class });
+			btSocket = (BluetoothSocket) m.invoke(btDevice, Integer.valueOf(1));
+			} catch (Exception e) {
+				throw new IOException("Could not create Bluetooth socket using reflection");
+			}*/
+						
 			// Connect socket to Razor AHRS
-			debugMsg("Canceling bt discovery");
+			if (DEBUG) Log.d(TAG, "Canceling bt discovery");
 			BluetoothAdapter.getDefaultAdapter().cancelDiscovery();	// Recommended
-			debugMsg("Trying to connect() btSocket");
+			if (DEBUG) Log.d(TAG, "Trying to connect() btSocket");
 			btSocket.connect();
 			
 			// Get the input and output streams
-			debugMsg("Trying to create streams");
+			if (DEBUG) Log.d(TAG, "Trying to create streams");
 			inStream = btSocket.getInputStream();
 			outStream = btSocket.getOutputStream();
 			if (inStream == null || outStream == null) {
-				debugMsg("Could not create I/O stream(s) in connect()");
+				if (DEBUG) Log.d(TAG, "Could not create I/O stream(s) in connect()");
 				throw new IOException("Could not create I/O stream(s)");
 			}
 		}
@@ -380,37 +360,40 @@ public class RazorAHRS {
 		 * Bluetooth I/O thread entry method.
 		 */
 		public void run() {
-			debugMsg("Bluetooth I/O thread started");
+			if (DEBUG) Log.d(TAG, "Bluetooth I/O thread started");
 			try {
 				// Check if btDevice is set
 				if (btDevice == null) {
-					debugMsg("btDevice is null in run()");
+					if (DEBUG) Log.d(TAG, "btDevice is null in run()");
 					throw new IOException("Bluetooth device is null");
 				}
 				
-				// Try to connect several times
+				// Make several attempts to connect
 				int i = 1;
 				while (true) {
-					debugMsg("Connect attempt " + i + " of " + numConnectAttempts);
+					if (DEBUG) Log.d(TAG, "Connect attempt " + i + " of " + numConnectAttempts);
 					sendToParentThread(MSG_ID__CONNECT_ATTEMPT, i);
 					try {
 						connect();
 						break;	// Alrighty!
 					} catch (IOException e) {
-						debugMsg("Attempt failed: " + e.getMessage());
+						if (DEBUG) Log.d(TAG, "Attempt failed: " + e.getMessage());
 						// Maximum number of attempts reached or cancel requested?
 						if (i == numConnectAttempts || connectionState == ConnectionState.USER_DISCONNECT_REQUEST)
 							throw e;
 						
-						// Wait one second
-						delay(1000);
+						// We couldn't connect on first try, manually starting Bluetooth discovery
+						// often helps
+						if (DEBUG) Log.d(TAG, "Starting BT discovery");
+						BluetoothAdapter.getDefaultAdapter().startDiscovery();
+						delay(5000); // 5 seconds - long enough?
 						
 						i++;
 					}
 				}
 				
 				// Set Razor output mode
-				debugMsg("Trying to set Razor output mode");
+				if (DEBUG) Log.d(TAG, "Trying to set Razor output mode");
 				initRazor();
 
 				// We're connected and initialized (unless disconnect was requested)
@@ -426,7 +409,7 @@ public class RazorAHRS {
 				sendToParentThread(MSG_ID__CONNECT_OK, null);
 	
 				// Keep reading inStream until an exception occurs
-				debugMsg("Starting input loop");
+				if (DEBUG) Log.d(TAG, "Starting input loop");
 				while (true) {
 					// Read byte from input stream
 					inBuf[inBufPos++] = (byte) readByte();
@@ -444,14 +427,14 @@ public class RazorAHRS {
 					}
 				}
 			} catch (IOException e) {
-				debugMsg("IOException in Bluetooth thread: " + e.getMessage());
+				if (DEBUG) Log.d(TAG, "IOException in Bluetooth thread: " + e.getMessage());
 				synchronized (connectionState) {
 					// Don't forward exception if it was thrown because we broke I/O on purpose in
 					// other thread when user requested disconnect
 					if (connectionState != ConnectionState.USER_DISCONNECT_REQUEST) {
 						// There was a true I/O error, cleanup and forward exception
 						closeSocketAndStreams();
-						debugMsg("Forwarding exception");
+						if (DEBUG) Log.d(TAG, "Forwarding exception");
 						sendToParentThread(MSG_ID__IO_EXCEPTION_AND_DISCONNECT, e);
 					} else {
 						// I/O error was caused on purpose, socket and streams are closed already
@@ -491,7 +474,7 @@ public class RazorAHRS {
 		 */
 		void delay(long ms) {
 			try {
-				sleep(5); // Sleep 5ms
+				sleep(ms); // Sleep 5ms
 			} catch (InterruptedException e) { }
 		}
 	}

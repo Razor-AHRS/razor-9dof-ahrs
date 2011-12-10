@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Test App: Android Java Interface for Razor AHRS v1.3.2
+* Test App: Android Java Interface for Razor AHRS v1.3.3
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
@@ -17,9 +17,9 @@ import java.io.IOException;
 import java.util.Set;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -28,6 +28,7 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+import de.tuberlin.qu.razorahrs.DeclinationHelper;
 import de.tuberlin.qu.razorahrs.RazorAHRS;
 import de.tuberlin.qu.razorahrs.RazorListener;
 
@@ -43,6 +44,7 @@ protected static final String TAG = "RazorExampleActivity";
 	private TextView yawTextView;
 	private TextView pitchTextView;
 	private TextView rollTextView;
+	private TextView declinationTextView;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +61,15 @@ protected static final String TAG = "RazorExampleActivity";
 		yawTextView = (TextView) findViewById(R.id.yaw_textview);
 		pitchTextView = (TextView) findViewById(R.id.pitch_textview);
 		rollTextView = (TextView) findViewById(R.id.roll_textview);
+		declinationTextView = (TextView) findViewById(R.id.declination_textview);
+		
+		// Get current declination
+		Location currentLocation = DeclinationHelper.getCurrentLocation(this);
+		if (currentLocation == null)
+			declinationTextView.setText("Magnetic declination: Unknown, can not get current location.");
+		else
+			declinationTextView.setText("Magnetic declination: "
+					+ String.format("%.3f", DeclinationHelper.getDeclinationAt(currentLocation)) + "¡");
 		
 		// Get Bluetooth adapter
 		bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -90,15 +101,13 @@ protected static final String TAG = "RazorExampleActivity";
 	    	errorText("No paired Bluetooth devices found. Please go to Bluetooth Settings and pair the Razor AHRS.");
 	    } else {
 	    	((RadioButton) deviceListRadioGroup.getChildAt(0)).setChecked(true);
-	    	enableConnectButton();
+	    	setButtonStateDisconnected();
 	    }
 
 	    // Connect button click handler
 	    connectButton.setOnClickListener(new View.OnClickListener() {
-	    	ProgressDialog progressDialog;
-	    	
 	    	public void onClick(View view) {
-	    		disableOkButton();
+	    		setButtonStateConnecting();
 	    		
 	    		// Get selected Bluetooth device
 	    		RadioButton rb = (RadioButton) findViewById(deviceListRadioGroup.getCheckedRadioButtonId());
@@ -118,32 +127,30 @@ protected static final String TAG = "RazorExampleActivity";
 	    			@Override
 	    			public void onConnectOk() {
 	    				Toast.makeText(RazorExample.this, "Connected!", Toast.LENGTH_LONG).show();
+	    				setButtonStateConnected();
 	    			}
 	    			
 	    			public void onConnectFail(Exception e) {
-	    				enableConnectButton();
+	    				setButtonStateDisconnected();
 		    			Toast.makeText(RazorExample.this, "Connecting failed: " + e.getMessage() + ".", Toast.LENGTH_LONG).show();
 	    			}
 
 					@Override
 					public void onAnglesUpdate(float yaw, float pitch, float roll) {
-						yawTextView.setText(String.valueOf((int) (yaw + 0.5f)));
-						pitchTextView.setText(String.valueOf((int) (pitch + 0.5f)));
-						rollTextView.setText(String.valueOf((int) (roll + 0.5f)));
+						yawTextView.setText(String.format("%.1f", yaw));
+						pitchTextView.setText(String.format("%.1f", pitch));
+						rollTextView.setText(String.format("%.1f", roll));
 					}
 
 					@Override
 					public void onIOExceptionAndDisconnect(IOException e) {
-	    				enableConnectButton();
+	    				setButtonStateDisconnected();
 		    			Toast.makeText(RazorExample.this, "Disconnected, an error occured: " + e.getMessage() + ".", Toast.LENGTH_LONG).show();
 					}
-	    		}, 5);
-	    		
-	    		// TODO
-	    		razor.setDebugMessagesEnabled(true);
+	    		});
 	    		
 	    		// Connect asynchronously
-	    		razor.asyncConnect();
+	    		razor.asyncConnect(5);	// 5 connect attempts
 	    	}
 	    });
 	    
@@ -151,7 +158,7 @@ protected static final String TAG = "RazorExampleActivity";
 	    cancelButton.setOnClickListener(new View.OnClickListener() {
 	    	public void onClick(View view) {
 	    		razor.asyncDisconnect(); // Also cancels pending connect 
-	    		enableConnectButton();
+	    		setButtonStateDisconnected();
 	    	}
 	    });
 	}
@@ -162,7 +169,7 @@ protected static final String TAG = "RazorExampleActivity";
     	deviceListRadioGroup.addView(tv);
 	}
 	
-	private void enableConnectButton() {
+	private void setButtonStateDisconnected() {
 		// Enable connect button
 		connectButton.setEnabled(true);
 		connectButton.setText("Connect");
@@ -171,7 +178,7 @@ protected static final String TAG = "RazorExampleActivity";
 		cancelButton.setEnabled(false);
 	}
 
-	private void disableOkButton() {
+	private void setButtonStateConnecting() {
 		// Disable connect button and set text
 		connectButton.setEnabled(false);
 		connectButton.setText("Connecting...");
@@ -180,6 +187,15 @@ protected static final String TAG = "RazorExampleActivity";
 		cancelButton.setEnabled(true);
 	}
 
+	private void setButtonStateConnected() {
+		// Disable connect button and set text
+		connectButton.setEnabled(false);
+		connectButton.setText("Connected");
+		
+		// Enable cancel button
+		cancelButton.setEnabled(true);
+	}
+	
 	@Override
 	protected void onStop() {
 		super.onStop();

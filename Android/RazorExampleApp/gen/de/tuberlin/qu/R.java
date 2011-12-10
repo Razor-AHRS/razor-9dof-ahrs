@@ -16,6 +16,7 @@ public final class R {
     public static final class id {
         public static final int cancel_button=0x7f050002;
         public static final int connect_button=0x7f050001;
+        public static final int declination_textview=0x7f050006;
         public static final int devices_radiogroup=0x7f050000;
         public static final int pitch_textview=0x7f050004;
         public static final int roll_textview=0x7f050005;

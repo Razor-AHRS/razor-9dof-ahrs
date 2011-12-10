@@ -1,5 +1,5 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.3.2
+* Razor AHRS Firmware v1.3.3
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU (SEN-10125 and SEN-10736)
 *
@@ -39,8 +39,6 @@
 *   * Use self-test and temperature-compensation features of the sensors.
 *   * Runtime hardware version detection.
 ***************************************************************************************************************/
-
-// Last changed: 05-Dec-2011
 
 /*
   9DOF Razor IMU hardware version - SEN-10125 and SEN-10736
@@ -88,9 +86,11 @@
     
   "#f" - Request one output frame - useful when continuous output is disabled and updates are
          required in larger intervals only.
-  "#s" - Request synch token - useful to find out where the frame boundaries are in a continuous
-         binary stream or to see if tracker is present when streaming is off. The tracker will
-         send "#SYNCH\r\n" in response (so it's possible to read using a readLine() function).
+  "#s<xy>" - Request synch token - useful to find out where the frame boundaries are in a continuous
+         binary stream or to see if tracker is present and answering. The tracker will send
+         "#SYNCH<xy>\r\n" in response (so it's possible to read using a readLine() function).
+         x and y are two mandatory but arbitrary bytes that can be used to find out which request
+         the answer belongs to.
           
   ("#C" and "#D" - Reserved for communication with optional Bluetooth module.)
   
@@ -110,7 +110,7 @@
 // HARDWARE OPTIONS
 /*****************************************************************/
 // Select your Razor 9DOF hardware version here by uncommenting one line!
-#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
+//#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
 //#define HW__RAZOR_VERSION 10736 // Meaning SparkFun "SEN-10736", which uses HMC5883L magnetometer
 
 
@@ -133,7 +133,7 @@
 int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 // Select if serial continuous streaming output is enabled per default on startup.
-#define OUTPUT__STARTUP_STREAM_ON false  // true or false
+#define OUTPUT__STARTUP_STREAM_ON true  // true or false
 
 // If set true, an error message will be output if we fail to read sensor data.
 // Message format: "!ERR: reading <sensor>", followed by "\r\n".
@@ -148,7 +148,7 @@ boolean output_errors = false;  // true or false
 // It is not necessary to set this! It just makes life easier when writing code for
 // the receiving side. The Processing test sketch also works without setting this.
 // NOTE: When using this, OUTPUT__STARTUP_STREAM_ON has no effect!
-#define OUTPUT__HAS_RN_BLUETOOTH true  // true or false
+#define OUTPUT__HAS_RN_BLUETOOTH false  // true or false
 
 
 // SENSOR CALIBRATION
@@ -157,7 +157,7 @@ boolean output_errors = false;  // true or false
 // Put MIN/MAX and OFFSET readings for your board here!
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-/*#define ACCEL_X_MIN ((float) -250)
+#define ACCEL_X_MIN ((float) -250)
 #define ACCEL_X_MAX ((float) 250)
 #define ACCEL_Y_MIN ((float) -250)
 #define ACCEL_Y_MAX ((float) 250)
@@ -178,8 +178,8 @@ boolean output_errors = false;  // true or false
 #define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
-*/
-/**/
+
+/*
 // Calibration example:
 // "accel x,y,z (min/max) = -278.00/270.00  -254.00/284.00  -294.00/235.00"
 #define ACCEL_X_MIN ((float) -278)
@@ -201,7 +201,7 @@ boolean output_errors = false;  // true or false
 #define GYRO_AVERAGE_OFFSET_X ((float) -34.82)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 100.41)
 #define GYRO_AVERAGE_OFFSET_Z ((float) -16.38)
-/**/
+*/
 
 
 // DEBUG OPTIONS
@@ -402,6 +402,13 @@ void turn_output_stream_off()
   digitalWrite(STATUS_LED_PIN, LOW);
 }
 
+// Blocks until another byte is available on serial port
+char readChar()
+{
+  while (Serial.available() < 1) { } // Block
+  return Serial.read();
+}
+
 void setup()
 {
   // Init serial output
@@ -443,13 +450,19 @@ void loop()
         output_single_on = true;
       else if (command == 's') // _s_ynch request
       {
-        // Send synch message
-        Serial.println("#SYNCH");
+        // Read ID
+        byte id[2];
+        id[0] = readChar();
+        id[1] = readChar();
+        
+        // Reply with synch message
+        Serial.print("#SYNCH");
+        Serial.write(id, 2);
+        Serial.println();
       }
       else if (command == 'o') // Set _o_utput mode
       {
-        while (Serial.available() < 1) { } // Wait for another byte to arrive
-        int output_param = Serial.read();
+        char output_param = readChar();
         if (output_param == 'n')  // Calibrate _n_ext sensor
         {
           curr_calibration_sensor = (curr_calibration_sensor + 1) % 3;
@@ -478,8 +491,7 @@ void loop()
         }
         else if (output_param == 'e') // _e_rror output settings
         {
-          while (Serial.available() < 1) { } // Wait for another byte to arrive
-          int error_param = Serial.read();
+          char error_param = readChar();
           if (error_param == '0') output_errors = false;
           else if (error_param == '1') output_errors = true;
           else if (error_param == 'c') // get error count

@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.3.2
+* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.3.3
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
@@ -10,7 +10,6 @@
 * Infos, updates, bug reports and feedback:
 *     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 *************************************************************************************/
-
 
 #include "RazorAHRS.h"
 
@@ -25,14 +24,14 @@ RazorAHRS::RazorAHRS(const string& port, DataCallbackFunc data_func, ErrorCallba
 {  
   // open serial port
   if (port == "")
-    throw std::runtime_error("No port specified!");
+    throw runtime_error("No port specified!");
   if (!_open_serial_port(port.c_str()))
-    throw std::runtime_error("Could not open serial port!");  
+    throw runtime_error("Could not open serial port!");  
       
   // get port attributes
   struct termios tio;
   if (int errorID = tcgetattr(_serial_port, &tio))
-    throw std::runtime_error("Could not get serial port attributes! Error # " + to_str(errorID));
+    throw runtime_error("Could not get serial port attributes! Error # " + to_str(errorID));
   
   /* see http://www.easysw.com/~mike/serial/serial.html */
   /* and also http://linux.die.net/man/3/tcsetattr */
@@ -60,11 +59,11 @@ RazorAHRS::RazorAHRS(const string& port, DataCallbackFunc data_func, ErrorCallba
   
   // set port speed
   if (int errorID = cfsetispeed(&tio, speed))
-    throw std::runtime_error(" " + to_str(errorID)
+    throw runtime_error(" " + to_str(errorID)
         + ": Could not set new serial port input speed to "
         + to_str(speed) + ".");
   if (int errorID = cfsetospeed(&tio, speed))
-    throw std::runtime_error(" " + to_str(errorID)
+    throw runtime_error(" " + to_str(errorID)
         + ": Could not set new serial port output speed to "
         + to_str(speed) + ".");
 
@@ -72,7 +71,7 @@ RazorAHRS::RazorAHRS(const string& port, DataCallbackFunc data_func, ErrorCallba
   // must be done after setting speed!
   if (int errorID = tcsetattr(_serial_port, TCSANOW, &tio))
   {
-    throw std::runtime_error(" " + to_str(errorID)
+    throw runtime_error(" " + to_str(errorID)
         + ": Could not set new serial port attributes.");
   }
 
@@ -88,13 +87,11 @@ RazorAHRS::~RazorAHRS()
 }
 
 bool
-RazorAHRS::_read_synch_token(char c)
+RazorAHRS::_read_token(const string& token, char c)
 {
-  static const std::string _synch_token = "#SYNCH\r\n";
-
-  if (c == _synch_token[_input_pos++])
+  if (c == token[_input_pos++])
   {
-    if (_input_pos == _synch_token.length())
+    if (_input_pos == token.length())
     {
       // synch token found
       _input_pos = 0;
@@ -115,12 +112,17 @@ RazorAHRS::_init_razor()
   char in;
   int result;
   struct timeval t0, t1, t2;
+  const string synch_token = "#SYNCH";
+  const string new_line = "\r\n";
 
   // start time
   gettimeofday(&t0, NULL);
 
   // request synch token to see if Razor is really present
-  write(_serial_port, "#s", 2);
+  const string contact_synch_id = "00"; 
+  const string contact_synch_request = "#s" + contact_synch_id; 
+  const string contact_synch_reply = synch_token + contact_synch_id + new_line;
+  write(_serial_port, contact_synch_request.data(), contact_synch_request.length());
   gettimeofday(&t1, NULL);
 
   // set non-blocking I/O
@@ -129,26 +131,13 @@ RazorAHRS::_init_razor()
   /* look for tracker */
   while (true)
   {
-    // check timeout
-    gettimeofday(&t2, NULL);
-    if (elapsed_ms(t1, t2) > 200)
-    {
-      // 200ms elapsed since last request and no answer -> request synch again
-      // (this happens when DTR is connected and Razor resets on connect)
-      write(_serial_port, "#s", 2);
-      t1 = t2;
-    }
-    if (elapsed_ms(t0, t2) > _connect_timeout_ms)
-      // timeout -> tracker not present
-      throw std::runtime_error("Can not init: tracker does not answer.");  
-    
     // try to read one byte from the port
     result = read(_serial_port, &in, 1);
     
     // one byte read
     if (result > 0)
     {
-      if (_read_synch_token(in))
+      if (_read_token(contact_synch_reply, in))
         break;
     }
     // no data available
@@ -156,7 +145,20 @@ RazorAHRS::_init_razor()
       usleep(1000); // sleep 1ms
     // error
     else
-      throw std::runtime_error("Can not read from serial port.");  
+      throw runtime_error("Can not read from serial port.");  
+
+    // check timeout
+    gettimeofday(&t2, NULL);
+    if (elapsed_ms(t1, t2) > 200)
+    {
+      // 200ms elapsed since last request and no answer -> request synch again
+      // (this happens when DTR is connected and Razor resets on connect)
+      write(_serial_port, contact_synch_request.data(), contact_synch_request.length());
+      t1 = t2;
+    }
+    if (elapsed_ms(t0, t2) > _connect_timeout_ms)
+      // timeout -> tracker not present
+      throw runtime_error("Can not init: tracker does not answer.");  
   }
   
   
@@ -164,8 +166,10 @@ RazorAHRS::_init_razor()
   // set binary output mode, enable continuous streaming, disable errors and
   // request synch token. So we're good, no matter what state the tracker
   // currently is in.
-  string razor_config = "#ob#o1#oe0#s";
-  write(_serial_port, razor_config.data(), razor_config.length());
+  const string config_synch_id = "01";
+  const string config = "#ob#o1#oe0#s" + config_synch_id;
+  const string config_synch_reply = synch_token + config_synch_id + new_line;
+  write(_serial_port, config.data(), config.length());
   
   // set blocking I/O
   // (actually semi-blocking, because VTIME is set)
@@ -179,12 +183,12 @@ RazorAHRS::_init_razor()
     // one byte read
     if (result > 0)
     {
-      if (_read_synch_token(in))
+      if (_read_token(config_synch_reply, in))
         break;  // alrighty
     }
     // error
     else
-      throw std::runtime_error("Can not read from serial port.");  
+      throw runtime_error("Can not read from serial port.");  
   }
   
   // set semi-blocking I/O blocking again
@@ -260,7 +264,7 @@ RazorAHRS::_thread(void *arg)
       return arg;
     }
   }
-  catch(std::runtime_error& e)
+  catch(runtime_error& e)
   {
     error(string("Tracker init failed: ") + string(e.what()));
     return arg;

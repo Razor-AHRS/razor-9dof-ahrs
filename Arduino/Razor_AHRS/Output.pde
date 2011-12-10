@@ -1,3 +1,5 @@
+/* This file is part of the Razor AHRS Firmware */
+
 // Output angles: yaw, pitch, roll
 void output_angles()
 {

@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Android Java Interface for Razor AHRS v1.3.2
+* Android Java Interface for Razor AHRS
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *

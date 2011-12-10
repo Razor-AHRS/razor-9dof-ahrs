@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Android Java Interface for Razor AHRS v1.3.2
+* Android Java Interface for Razor AHRS
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
@@ -25,7 +25,7 @@ import android.location.LocationManager;
  * work, the caller needs to have ACCESS_COARSE_LOCATION and ACCESS_FINE_LOCATION permissions. Also
  * location tracking (i.e. GPS or Network) has to be turned on by the user.
  * <p>
- * You can find out about declinations yourself here:
+ * You can also find out about declination values here:
  * Overview: http://www.ngdc.noaa.gov/geomag/WMM/data/WMM2010/WMM2010_D_MERC.pdf
  * Calculator: http://www.ngdc.noaa.gov/geomagmodels/IGRFWMM.jsp
  */

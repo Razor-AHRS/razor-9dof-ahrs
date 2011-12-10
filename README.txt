@@ -1,4 +1,4 @@
-Razor AHRS Firmware and Test Sketch v1.3.2
+Razor AHRS Firmware and Test Sketch v1.3.3
 
 9 Degree of Measurement Attitude and Heading Reference System
 for Sparkfun 9DOF Razor IMU (SEN-10125 and SEN-10736)

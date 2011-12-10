@@ -1,3 +1,5 @@
+/* This file is part of the Razor AHRS Firmware */
+
 void Compass_Heading()
 {
   float mag_x;

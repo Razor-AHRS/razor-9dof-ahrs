@@ -1,5 +1,5 @@
 /*************************************************************************************
-* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.3.2
+* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.3.3
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun 9DOF Razor IMU
 *
@@ -49,7 +49,7 @@ class RazorAHRS
     bool _set_nonblocking_io();
     bool _is_io_blocking();
 
-    bool _read_synch_token(char c);
+    bool _read_token(const string& token, char c);
     bool _init_razor();
     
     // timing
