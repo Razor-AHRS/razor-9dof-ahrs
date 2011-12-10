@@ -5,17 +5,22 @@
 	- set other defaults
 - Processing code:
 	- set serial port number to 0
-- add latest tutorial (from the wiki)?
-	- better leave it online and add old versions to "files" section!
 - put updated version codes, latest change dates and copyright years everywhere
-	- source code
-	- wiki
+- commit
+
 - duplicate the whole thing and
 	- raname outer folder: "Razor AHRS v<version>"
 	- strip all .DS_Store and .svn files/folders
 	- strip this file
-	- move Android and C++ code elsewhere
-- zip up and rename zip file: "Razor AHRS Firmware v<version>.zip"
-- zip Android and C++ code
+	- add latest tutorial (from the wiki)?
+		- better leave it online and add old versions to "files" section?
+- move C++ code elsewhere and
+		- rename "Razor AHRS C++ Interface v<version>"
+		- remove binaries
+- zip firmware and rename: "Razor AHRS Firmware and Test Sketch v<version>.zip"
+- zip C++ lib and rename:  "Razor AHRS Cplusplus Interface v<version>"
 
+- upload files
 - tag version in SVN 
+- update version in Wiki
+- put release note on the News page

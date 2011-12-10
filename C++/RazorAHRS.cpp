@@ -114,7 +114,8 @@ RazorAHRS::_init_razor()
 {
   char in;
   int result;
-  
+  struct timeval t0, t1, t2;
+
   // start time
   gettimeofday(&t0, NULL);
 

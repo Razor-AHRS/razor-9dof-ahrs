@@ -110,7 +110,7 @@
 // HARDWARE OPTIONS
 /*****************************************************************/
 // Select your Razor 9DOF hardware version here by uncommenting one line!
-//#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
+#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
 //#define HW__RAZOR_VERSION 10736 // Meaning SparkFun "SEN-10736", which uses HMC5883L magnetometer
 
 
@@ -133,7 +133,7 @@
 int output_mode = OUTPUT__MODE_ANGLES_TEXT;
 
 // Select if serial continuous streaming output is enabled per default on startup.
-#define OUTPUT__STARTUP_STREAM_ON true  // true or false
+#define OUTPUT__STARTUP_STREAM_ON false  // true or false
 
 // If set true, an error message will be output if we fail to read sensor data.
 // Message format: "!ERR: reading <sensor>", followed by "\r\n".
@@ -148,7 +148,7 @@ boolean output_errors = false;  // true or false
 // It is not necessary to set this! It just makes life easier when writing code for
 // the receiving side. The Processing test sketch also works without setting this.
 // NOTE: When using this, OUTPUT__STARTUP_STREAM_ON has no effect!
-#define OUTPUT__HAS_RN_BLUETOOTH false  // true or false
+#define OUTPUT__HAS_RN_BLUETOOTH true  // true or false
 
 
 // SENSOR CALIBRATION
@@ -157,7 +157,7 @@ boolean output_errors = false;  // true or false
 // Put MIN/MAX and OFFSET readings for your board here!
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-#define ACCEL_X_MIN ((float) -250)
+/*#define ACCEL_X_MIN ((float) -250)
 #define ACCEL_X_MAX ((float) 250)
 #define ACCEL_Y_MIN ((float) -250)
 #define ACCEL_Y_MAX ((float) 250)
@@ -178,8 +178,8 @@ boolean output_errors = false;  // true or false
 #define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
-
-/*
+*/
+/**/
 // Calibration example:
 // "accel x,y,z (min/max) = -278.00/270.00  -254.00/284.00  -294.00/235.00"
 #define ACCEL_X_MIN ((float) -278)
@@ -201,7 +201,7 @@ boolean output_errors = false;  // true or false
 #define GYRO_AVERAGE_OFFSET_X ((float) -34.82)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 100.41)
 #define GYRO_AVERAGE_OFFSET_Z ((float) -16.38)
-*/
+/**/
 
 
 // DEBUG OPTIONS
