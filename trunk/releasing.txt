@@ -1,0 +1,30 @@
+- Arduino code:
+	- uncomment all hardware versions under "USER SETUP AREA" / "HARDWARE OPTIONS"
+	- set default calibration
+	- set OUTPUT__STARTUP_STREAM_ON true
+	- set other defaults
+- Processing code:
+	- set serial port number to 0
+- put updated version codes, latest change dates and copyright years everywhere
+- commit
+
+- duplicate the whole thing and
+	- raname outer folder: "Razor AHRS v<version>"
+	- strip all .DS_Store and .svn files/folders (leave .classpath and .project!)
+	- strip this file
+	- add latest tutorial (from the wiki)?
+		- better leave it online and add old versions to "files" section?
+- move C++ code elsewhere and
+		- rename "Razor AHRS C++ Interface v<version>"
+		- remove binaries
+- move Android code elsewhere and
+		- rename "Razor AHRS Android Java Interface v<version>"
+		- remove binaries
+- zip firmware and rename: "Razor AHRS Firmware and Test Sketch v<version>.zip"
+- zip C++ lib and rename:  "Razor AHRS Cplusplus Interface and Test Program v<version>"
+- zip Android lib and rename: "Razor AHRS Android Java Interface and Test Project v<version>"
+
+- upload files into new version
+- tag version in SVN
+- update version in Wiki
+- put release note on the News page
