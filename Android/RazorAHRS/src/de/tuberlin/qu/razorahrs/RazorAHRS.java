@@ -435,7 +435,10 @@ public class RazorAHRS {
 						// There was a true I/O error, cleanup and forward exception
 						closeSocketAndStreams();
 						if (DEBUG) Log.d(TAG, "Forwarding exception");
-						sendToParentThread(MSG_ID__IO_EXCEPTION_AND_DISCONNECT, e);
+						if (connectionState == ConnectionState.CONNECTING)
+							sendToParentThread(MSG_ID__CONNECT_FAIL, e);
+						else
+							sendToParentThread(MSG_ID__IO_EXCEPTION_AND_DISCONNECT, e);
 					} else {
 						// I/O error was caused on purpose, socket and streams are closed already
 					}
