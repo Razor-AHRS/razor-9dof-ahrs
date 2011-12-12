@@ -35,10 +35,10 @@ using namespace std::tr1;
 class RazorAHRS
 {
   public:    
-    typedef function<void(float[])> DataCallbackFunc;
+    typedef function<void(const float[])> DataCallbackFunc;
     typedef function<void(const string&)> ErrorCallbackFunc;
 
-    RazorAHRS(const string& port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
+    RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
         int connect_timeout_ms = 5000, speed_t speed = B57600);
     ~RazorAHRS();
 
@@ -49,7 +49,7 @@ class RazorAHRS
     bool _set_nonblocking_io();
     bool _is_io_blocking();
 
-    bool _read_token(const string& token, char c);
+    bool _read_token(const string &token, char c);
     bool _init_razor();
     
     // timing
@@ -58,8 +58,15 @@ class RazorAHRS
       return (long) ((end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000);
     }
 
+    // input buffer
+    union
+    {
+      float ypr[3]; // yaw, pitch, roll
+      float amg[3][3];  // future use: accelerometer, magnetometer, gyroscope
+    }
+    _input_buf;
     size_t _input_pos;
-    char _input_buf[12];
+    
     int _connect_timeout_ms;
     int _serial_port;
 
@@ -97,6 +104,48 @@ class RazorAHRS
       stringstream ss;
       ss << i;
       return ss.str();
+    }
+    
+    bool _big_endian()
+    {
+        const int num = 1;
+        return (*(reinterpret_cast<const char*> (&num))) != 1;
+    }
+    
+    // swap endianess of int
+    void _swap_endianess(int &i)
+    {
+      i = (i >> 24) | ((i << 8) & 0x00FF0000) | ((i >> 8) & 0x0000FF00) | (i << 24);
+    }
+    
+    // swap endianess of float
+    void _swap_endianess(float &f)
+    {
+      float swapped;
+      char *f_as_char = reinterpret_cast<char*> (&f);
+      char *swapped_as_char = reinterpret_cast<char*> (&swapped);
+
+      // swap the bytes into a temporary buffer
+      swapped_as_char[0] = f_as_char[3];
+      swapped_as_char[1] = f_as_char[2];
+      swapped_as_char[2] = f_as_char[1];
+      swapped_as_char[3] = f_as_char[0];
+      
+      f = swapped;
+    }
+    
+    // swap endianess of int array
+    void _swap_endianess(int arr[], int arr_length)
+    {
+      for (int i = 0; i < arr_length; i++)
+        _swap_endianess(arr[i]);
+    }
+    
+    // swap endianess of float array
+    void _swap_endianess(float arr[], int arr_length)
+    {
+      for (int i = 0; i < arr_length; i++)
+        _swap_endianess(arr[i]);
     }
 };
 
