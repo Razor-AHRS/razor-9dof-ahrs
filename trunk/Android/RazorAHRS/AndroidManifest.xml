@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="de.tuberlin.qu.razorahrs">
+      
+    <!-- minSdkVersion of project that uses this library has to be 5 (= Android 2.0): -->
+    <!--
+    <uses-sdk android:minSdkVersion="5" />
+	 -->
+    
+    <!-- These have to be defined in manifest of project that uses this library: -->
+	<!-- Permissions for Bluetooth communication -->
+	<!--
+	<uses-permission android:name="android.permission.BLUETOOTH"></uses-permission>
+	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN"></uses-permission>
+	-->
+	<!-- Permissions for automatic retrieval of magnetic declination -->
+	<!--
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"></uses-permission>
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"></uses-permission>
+	-->
+</manifest>
