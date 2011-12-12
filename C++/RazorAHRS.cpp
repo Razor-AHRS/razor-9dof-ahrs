@@ -12,8 +12,9 @@
 *************************************************************************************/
 
 #include "RazorAHRS.h"
+#include <assert.h>
 
-RazorAHRS::RazorAHRS(const string& port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
+RazorAHRS::RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
     int connect_timeout_ms, speed_t speed)
     : _input_pos(0)
     , _connect_timeout_ms(connect_timeout_ms)
@@ -22,6 +23,10 @@ RazorAHRS::RazorAHRS(const string& port, DataCallbackFunc data_func, ErrorCallba
     , _thread_id(0)
     , _stop_thread(false)
 {  
+  // check data type sizes
+  assert(sizeof(char) == 1);
+  assert(sizeof(float) == 4);
+
   // open serial port
   if (port == "")
     throw runtime_error("No port specified!");
@@ -87,7 +92,7 @@ RazorAHRS::~RazorAHRS()
 }
 
 bool
-RazorAHRS::_read_token(const string& token, char c)
+RazorAHRS::_read_token(const string &token, char c)
 {
   if (c == token[_input_pos++])
   {
@@ -275,12 +280,19 @@ RazorAHRS::_thread(void *arg)
     if ((result = read(_serial_port, &c, 1)) > 0) // blocks only for VTIME before returning
     {
       // read binary stream
-      _input_buf[_input_pos++] = c;
-      if (_input_pos == 12)
+      // (type-punning: aliasing with char* is ok)
+      (reinterpret_cast<char*> (&_input_buf))[_input_pos++] = c;
+      if (_input_pos == 12) // we received a full frame
       {
-        // we received a full frame
-        // forward
-        data((float*) _input_buf);
+        // convert endianess if necessary
+        if (_big_endian())
+        {
+          _swap_endianess(_input_buf.ypr, 3);
+        }
+        
+        // invoke callback
+        data(_input_buf.ypr);
+        
         _input_pos = 0;
       }
     }
