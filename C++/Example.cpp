@@ -13,7 +13,7 @@
 
 #include <iostream>   // cout()
 #include <stdexcept>  // runtime_error
-#include <stdio.h>    // getchar()
+#include <cstdio>    // getchar()
 #include "RazorAHRS.h"
 
 using namespace std;

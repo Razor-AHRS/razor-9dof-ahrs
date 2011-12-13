@@ -55,7 +55,7 @@ class RazorAHRS
     // timing
     long elapsed_ms(struct timeval start, struct timeval end)
     {
-      return (long) ((end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000);
+      return static_cast<long> ((end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000);
     }
 
     // input buffer

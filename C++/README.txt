@@ -13,7 +13,7 @@ You can find a tutorial on the tracker itself at:
 
 
 Compile test program:
-  g++ Example.cpp RazorAHRS.cpp -Wall -D_REENTRANT -o example
+  g++ Example.cpp RazorAHRS.cpp -Wall -D_REENTRANT -lpthread -o example
 And run it:
   ./example
 

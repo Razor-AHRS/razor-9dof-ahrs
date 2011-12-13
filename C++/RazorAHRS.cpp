@@ -12,7 +12,7 @@
 *************************************************************************************/
 
 #include "RazorAHRS.h"
-#include <assert.h>
+#include <cassert>
 
 RazorAHRS::RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
     int connect_timeout_ms, speed_t speed)
