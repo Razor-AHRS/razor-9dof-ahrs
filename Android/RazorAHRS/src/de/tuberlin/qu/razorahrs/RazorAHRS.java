@@ -414,12 +414,15 @@ public class RazorAHRS {
 					// Read byte from input stream
 					inBuf[inBufPos++] = (byte) readByte();
 						
-					if (inBufPos == 12) {
-						// We received a full frame, forward input to parent thread handler
+					if (inBufPos == 12) {	// We received a full frame
 						float[] ypr = float3Pool.get();
+						
+						// Convert from little endian (Razor) to big endian (Java) and interpret as float
 						ypr[0] = Float.intBitsToFloat((inBuf[0] & 0xff) + ((inBuf[1] & 0xff) << 8) + ((inBuf[2] & 0xff) << 16) + ((inBuf[3] & 0xff) << 24));
 						ypr[1] = Float.intBitsToFloat((inBuf[4] & 0xff) + ((inBuf[5] & 0xff) << 8) + ((inBuf[6] & 0xff) << 16) + ((inBuf[7] & 0xff) << 24));
 						ypr[2] = Float.intBitsToFloat((inBuf[8] & 0xff) + ((inBuf[9] & 0xff) << 8) + ((inBuf[10] & 0xff) << 16) + ((inBuf[11] & 0xff) << 24));
+						
+						// Forward to parent thread handler
 						sendToParentThread(MSG_ID__YPR_DATA, ypr);
 						
 						// Rewind input buffer position
