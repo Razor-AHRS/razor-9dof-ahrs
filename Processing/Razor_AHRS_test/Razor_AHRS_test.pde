@@ -153,6 +153,7 @@ void setupRazor() {
 }
 
 float readFloat(Serial s) {
+  // Convert from little endian (Razor) to big endian (Java) and interpret as float
   return Float.intBitsToFloat(s.read() + (s.read() << 8) + (s.read() << 16) + (s.read() << 24));
 }
 
