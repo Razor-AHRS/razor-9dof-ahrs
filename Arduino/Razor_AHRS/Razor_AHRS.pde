@@ -1,7 +1,7 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.3.3
+* Razor AHRS Firmware v1.4.0
 * 9 Degree of Measurement Attitude and Heading Reference System
-* for Sparkfun 9DOF Razor IMU (SEN-10125 and SEN-10736)
+* for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736) and "9DOF Sensor Stick" (SEN-10183 and SEN-10724)
 *
 * Released under GNU GPL (General Public License) v3.0
 * Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
@@ -14,7 +14,7 @@
 *   * Original code (http://code.google.com/p/sf9domahrs/) by Doug Weibel and Jose Julio,
 *     based on ArduIMU v1.5 by Jordi Munoz and William Premerlani, Jose Julio and Doug Weibel. Thank you!
 *
-*   * Updated code (http://groups.google.com/group/sf_9dof_ahrs_update/) by David Malik (david.zsolt.malik@gmail.com)
+*   * Updated code (http://groups.google.com/group/sf_9dof_ahrs_update) by David Malik (david.zsolt.malik@gmail.com)
 *     for new Sparkfun 9DOF Razor hardware (SEN-10125).
 *
 *   * Updated and extended by Peter Bartz (peter-bartz@gmx.de):
@@ -29,15 +29,19 @@
 *       --> The output of this code is not compatible with the older versions!
 *       --> A Processing sketch to test the tracker is available.
 *     * v1.3.1
-*       * Initializing rotation matrix based on start-up sensor readings -> orientation OK right away
-*       * Adjusted gyro low-pass filter and output rate settings
+*       * Initializing rotation matrix based on start-up sensor readings -> orientation OK right away.
+*       * Adjusted gyro low-pass filter and output rate settings.
 *     * v1.3.2
-*       * Adapted code to work with new Arduino 1.0 (and older versions still) 
+*       * Adapted code to work with new Arduino 1.0 (and older versions still).
+*     * v1.3.3
+*       * Improved synching.
+*     * v1.4.0
+*       * Added support for "9DOF Sensor Stick" (versions SEN-10183 and SEN-10724).
 *
 * TODOs:
-*   * Put calibration values into EEPROM instead of hardcoding them using #define.
+*   * Allow optional use of EEPROM for storing and reading calibration values.
 *   * Use self-test and temperature-compensation features of the sensors.
-*   * Runtime hardware version detection.
+*   * Add binary output of unfused sensor data for all 9 axes.
 ***************************************************************************************************************/
 
 /*
@@ -77,7 +81,7 @@
               is 3x4 = 12 bytes long).
       "#ot" - Output angles in text format (Output frames have form like "#YPR=-142.28,-5.38,33.52",
               followed by carriage return and line feed [\r\n]).
-      "#os" - Output (calibrated) sensor values for all 9 axes. One frame consist of
+      "#os" - Output (calibrated) sensor data of all 9 axes in text format. One frame consist of
               three lines - one for each sensor.
       "#oc" - Go to calibration output mode.
       "#on" - When in calibration mode, go on to calibrate next sensor.
@@ -99,6 +103,8 @@
   a synch token all at once.
   
   The status LED will be on if streaming output is enabled and off otherwise.
+  
+  Byte order of binary output is little-endian: least significant byte comes first.
 */
 
 
@@ -109,9 +115,11 @@
 
 // HARDWARE OPTIONS
 /*****************************************************************/
-// Select your Razor 9DOF hardware version here by uncommenting one line!
-//#define HW__RAZOR_VERSION 10125   // Meaning SparkFun "SEN-10125", which uses HMC5843 magnetometer
-//#define HW__RAZOR_VERSION 10736 // Meaning SparkFun "SEN-10736", which uses HMC5883L magnetometer
+// Select your hardware here by uncommenting one line!
+//#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125", which uses HMC5843 magnetometer
+//#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736", which uses HMC5883L magnetometer
+//#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183", which uses HMC5843 magnetometer
+//#define HW__VERSION_CODE 10724 // SparkFun "9DOF Sensor Stick" version "SEN-10724", which uses HMC5883L magnetometer
 
 
 // OUTPUT OPTIONS
@@ -225,10 +233,10 @@ boolean output_errors = false;  // true or false
 
 
 
-// Check if hardware version is defined
-#ifndef HW__RAZOR_VERSION
+// Check if hardware version code is defined
+#ifndef HW__VERSION_CODE
   // Generate compile error
-  #error YOU HAVE TO DEFINE YOUR RAZOR HARDWARE VERSION! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.pde!
+  #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.pde!
 #endif
 
 #include <Wire.h>
@@ -266,7 +274,7 @@ boolean output_errors = false;  // true or false
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
 // Sensor variables
-float accel[3];
+float accel[3];  // Actually stores the NEGATED acceleration (equals gravity, if board not moving).
 float accel_min[3];
 float accel_max[3];
 
@@ -277,8 +285,6 @@ float magnetom_max[3];
 float gyro[3];
 float gyro_average[3];
 int gyro_num_samples = 0;
-
-int sensor_sign[9] = {-1, -1, -1, 1, 1, 1, -1, -1, -1};  // Correct directions x, y, z - gyros, accels, magnetometer
 
 // DCM variables
 float MAG_Heading;
@@ -369,7 +375,7 @@ void compensate_sensor_errors() {
     gyro[2] -= GYRO_AVERAGE_OFFSET_Z;
 }
 
-// Called if reset_calibration_session_flag is set
+// Reset calibration session if reset_calibration_session_flag is set
 void check_reset_calibration_session()
 {
   // Raw sensor values have to be read already, but no error compensation applied

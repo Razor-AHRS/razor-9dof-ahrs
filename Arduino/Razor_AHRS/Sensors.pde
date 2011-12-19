@@ -1,6 +1,6 @@
 /* This file is part of the Razor AHRS Firmware */
 
-// I2C code that reads the sensors
+// I2C code to read the sensors
 
 // Sensor I2C addresses
 #define ACCEL_ADDRESS ((int) 0x53) // 0x53 = 0xA6 / 2
@@ -16,6 +16,7 @@
   #define WIRE_RECEIVE() Wire.receive() 
 #endif
 
+
 void I2C_Init()
 {
   Wire.begin();
@@ -24,19 +25,20 @@ void I2C_Init()
 void Accel_Init()
 {
   Wire.beginTransmission(ACCEL_ADDRESS);
-  WIRE_SEND(0x2D);  // power register
-  WIRE_SEND(0x08);  // measurement mode
+  WIRE_SEND(0x2D);  // Power register
+  WIRE_SEND(0x08);  // Measurement mode
   Wire.endTransmission();
   delay(5);
   Wire.beginTransmission(ACCEL_ADDRESS);
   WIRE_SEND(0x31);  // Data format register
-  WIRE_SEND(0x08);  // set to full resolution
+  WIRE_SEND(0x08);  // Set to full resolution
   Wire.endTransmission();
-  delay(5);	
+  delay(5);
+  
   // Because our main loop runs at 50Hz we adjust the output data rate to 50Hz (25Hz bandwidth)
   Wire.beginTransmission(ACCEL_ADDRESS);
   WIRE_SEND(0x2C);  // Rate
-  WIRE_SEND(0x09);  // set to 50Hz, normal operation
+  WIRE_SEND(0x09);  // Set to 50Hz, normal operation
   Wire.endTransmission();
   delay(5);
 }
@@ -48,24 +50,25 @@ void Read_Accel()
   byte buff[6];
   
   Wire.beginTransmission(ACCEL_ADDRESS); 
-  WIRE_SEND(0x32);        //sends address to read from
-  Wire.endTransmission(); //end transmission
+  WIRE_SEND(0x32);  // Send address to read from
+  Wire.endTransmission();
   
-  Wire.beginTransmission(ACCEL_ADDRESS); //start transmission to device
-  Wire.requestFrom(ACCEL_ADDRESS, 6);    // request 6 bytes from device
-  
-  while(Wire.available())   // ((Wire.available())&&(i<6))
+  Wire.beginTransmission(ACCEL_ADDRESS);
+  Wire.requestFrom(ACCEL_ADDRESS, 6);  // Request 6 bytes
+  while(Wire.available())  // ((Wire.available())&&(i<6))
   { 
-    buff[i] = WIRE_RECEIVE();  // receive one byte
+    buff[i] = WIRE_RECEIVE();  // Read one byte
     i++;
   }
-  Wire.endTransmission(); //end transmission
+  Wire.endTransmission();
   
   if (i == 6)  // All bytes received?
   {
-    accel[0] = sensor_sign[4] * ((((int) buff[3]) << 8) | buff[2]);    // X axis (internal sensor y axis)
-    accel[1] = sensor_sign[3] * ((((int) buff[1]) << 8) | buff[0]);    // Y axis (internal sensor x axis)
-    accel[2] = sensor_sign[5] * ((((int) buff[5]) << 8) | buff[4]);    // Z axis
+    // No multiply by -1 for coordinate system transformation here, because of double negation:
+    // We want the gravity vector, which is negated acceleration vector.
+    accel[0] = (((int) buff[3]) << 8) | buff[2];  // X axis (internal sensor y axis)
+    accel[1] = (((int) buff[1]) << 8) | buff[0];  // Y axis (internal sensor x axis)
+    accel[2] = (((int) buff[5]) << 8) | buff[4];  // Z axis (internal sensor z axis)
   }
   else
   {
@@ -78,7 +81,7 @@ void Magn_Init()
 {
   Wire.beginTransmission(MAGN_ADDRESS);
   WIRE_SEND(0x02); 
-  WIRE_SEND(0x00);   // Set continouos mode (default to 10Hz)
+  WIRE_SEND(0x00);  // Set continouos mode (default 10Hz)
   Wire.endTransmission();
   delay(5);
 
@@ -95,31 +98,42 @@ void Read_Magn()
   byte buff[6];
  
   Wire.beginTransmission(MAGN_ADDRESS); 
-  WIRE_SEND(0x03);        //sends address to read from
-  Wire.endTransmission(); //end transmission
+  WIRE_SEND(0x03);  // Send address to read from
+  Wire.endTransmission();
   
   Wire.beginTransmission(MAGN_ADDRESS); 
-  Wire.requestFrom(MAGN_ADDRESS, 6);    // request 6 bytes from device
-  while(Wire.available())   // ((Wire.available())&&(i<6))
+  Wire.requestFrom(MAGN_ADDRESS, 6);  // Request 6 bytes
+  while(Wire.available())  // ((Wire.available())&&(i<6))
   { 
-    buff[i] = WIRE_RECEIVE();  // receive one byte
+    buff[i] = WIRE_RECEIVE();  // Read one byte
     i++;
   }
-  Wire.endTransmission(); //end transmission
+  Wire.endTransmission();
   
   if (i == 6)  // All bytes received?
   {
-#if HW__RAZOR_VERSION == 10125  // SEN-10125 uses HMC5843 magnetometer
+#if HW__VERSION_CODE == 10125  // 9DOF Razor IMU SEN-10125 using HMC5843 magnetometer
     // MSB byte first, then LSB; X, Y, Z
-    magnetom[0] = sensor_sign[6] * ((((int) buff[2]) << 8) | buff[3]);    // X axis (internal sensor y axis)
-    magnetom[1] = sensor_sign[7] * ((((int) buff[0]) << 8) | buff[1]);    // Y axis (internal sensor x axis)
-    magnetom[2] = sensor_sign[8] * ((((int) buff[4]) << 8) | buff[5]);    // Z axis
-#elif HW__RAZOR_VERSION == 10736  // SEN-10736 uses HMC5883L magnetometer
+    magnetom[0] = -1 * (((int) buff[2]) << 8) | buff[3];  // X axis (internal sensor -y axis)
+    magnetom[1] = -1 * (((int) buff[0]) << 8) | buff[1];  // Y axis (internal sensor -x axis)
+    magnetom[2] = -1 * (((int) buff[4]) << 8) | buff[5];  // Z axis (internal sensor -z axis)
+#elif HW__VERSION_CODE == 10736  // 9DOF Razor IMU SEN-10736 using HMC5883L magnetometer
     // MSB byte first, then LSB; Y and Z reversed: X, Z, Y
-    magnetom[0] = sensor_sign[6] * ((((int) buff[4]) << 8) | buff[5]);    // X axis (internal sensor y axis)
-    magnetom[1] = sensor_sign[7] * ((((int) buff[0]) << 8) | buff[1]);    // Y axis (internal sensor x axis)
-    magnetom[2] = sensor_sign[8] * ((((int) buff[2]) << 8) | buff[3]);    // Z axis
+    magnetom[0] = -1 * (((int) buff[4]) << 8) | buff[5];  // X axis (internal sensor -y axis)
+    magnetom[1] = -1 * (((int) buff[0]) << 8) | buff[1];  // Y axis (internal sensor -x axis)
+    magnetom[2] = -1 * (((int) buff[2]) << 8) | buff[3];  // Z axis (internal sensor -z axis)
+#elif HW__VERSION_CODE == 10183  // 9DOF Sensor Stick SEN-10183 using HMC5843 magnetometer
+    // MSB byte first, then LSB; X, Y, Z
+    magnetom[0] = (((int) buff[0]) << 8) | buff[1];       // X axis (internal sensor x axis)
+    magnetom[1] = -1 * (((int) buff[2]) << 8) | buff[3];  // Y axis (internal sensor -y axis)
+    magnetom[2] = -1 * (((int) buff[4]) << 8) | buff[5];  // Z axis (internal sensor -z axis)
+#elif HW__VERSION_CODE == 10724  // 9DOF Sensor Stick SEN-10724 using HMC5883L magnetometer
+    // MSB byte first, then LSB; Y and Z reversed: X, Z, Y
+    magnetom[0] = (((int) buff[0]) << 8) | buff[1];       // X axis (internal sensor x axis)
+    magnetom[1] = -1 * (((int) buff[4]) << 8) | buff[5];  // Y axis (internal sensor -y axis)
+    magnetom[2] = -1 * (((int) buff[2]) << 8) | buff[3];  // Z axis (internal sensor -z axis)
 #endif
+
   }
   else
   {
@@ -130,33 +144,33 @@ void Read_Magn()
 
 void Gyro_Init()
 {
-  /* Power up reset defaults */
+  // Power up reset defaults
   Wire.beginTransmission(GYRO_ADDRESS);
   WIRE_SEND(0x3E);
   WIRE_SEND(0x80);
-  Wire.endTransmission(); //end transmission
+  Wire.endTransmission();
   delay(5);
   
-  /* Select full-scale range of the gyro sensors */
-  /* Set LP filter bandwidth to 42Hz */
+  // Select full-scale range of the gyro sensors
+  // Set LP filter bandwidth to 42Hz
   Wire.beginTransmission(GYRO_ADDRESS);
   WIRE_SEND(0x16);
-  WIRE_SEND(0x1B);    // DLPF_CFG = 3, FS_SEL = 3
-  Wire.endTransmission(); //end transmission
+  WIRE_SEND(0x1B);  // DLPF_CFG = 3, FS_SEL = 3
+  Wire.endTransmission();
   delay(5);
   
-  /* Set sample rato to 50Hz */
+  // Set sample rato to 50Hz
   Wire.beginTransmission(GYRO_ADDRESS);
   WIRE_SEND(0x15);
-  WIRE_SEND(0x0A);        //  SMPLRT_DIV = 10 (50Hz)
+  WIRE_SEND(0x0A);  //  SMPLRT_DIV = 10 (50Hz)
   Wire.endTransmission();
   delay(5);
 
-  /* Set clock to PLL with z gyro reference */
+  // Set clock to PLL with z gyro reference
   Wire.beginTransmission(GYRO_ADDRESS);
   WIRE_SEND(0x3E);
   WIRE_SEND(0x00);
-  Wire.endTransmission(); //end transmission
+  Wire.endTransmission();
   delay(5);
 }
 
@@ -167,24 +181,23 @@ void Read_Gyro()
   byte buff[6];
   
   Wire.beginTransmission(GYRO_ADDRESS); 
-  WIRE_SEND(0x1D);        //sends address to read from
-  Wire.endTransmission(); //end transmission
+  WIRE_SEND(0x1D);  // Sends address to read from
+  Wire.endTransmission();
   
-  Wire.beginTransmission(GYRO_ADDRESS); //start transmission to device
-  Wire.requestFrom(GYRO_ADDRESS, 6);    // request 6 bytes from device
-  
-  while(Wire.available())   // ((Wire.available())&&(i<6))
+  Wire.beginTransmission(GYRO_ADDRESS);
+  Wire.requestFrom(GYRO_ADDRESS, 6);  // Request 6 bytes
+  while(Wire.available())  // ((Wire.available())&&(i<6))
   { 
-    buff[i] = WIRE_RECEIVE();  // receive one byte
+    buff[i] = WIRE_RECEIVE();  // Read one byte
     i++;
   }
-  Wire.endTransmission(); //end transmission
+  Wire.endTransmission();
   
   if (i == 6)  // All bytes received?
   {
-    gyro[0] = sensor_sign[1] * ((((int) buff[2]) << 8) | buff[3]);    // X axis (internal sensor y axis)
-    gyro[1] = sensor_sign[0] * ((((int) buff[0]) << 8) | buff[1]);    // Y axis (internal sensor x axis)
-    gyro[2] = sensor_sign[2] * ((((int) buff[4]) << 8) | buff[5]);    // Z axis
+    gyro[0] = -1 * (((int) buff[2]) << 8) | buff[3];    // X axis (internal sensor -y axis)
+    gyro[1] = -1 * (((int) buff[0]) << 8) | buff[1];    // Y axis (internal sensor -x axis)
+    gyro[2] = -1 * (((int) buff[4]) << 8) | buff[5];    // Z axis (internal sensor -z axis)
   }
   else
   {

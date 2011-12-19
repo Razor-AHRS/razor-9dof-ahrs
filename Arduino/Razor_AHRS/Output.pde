@@ -9,7 +9,7 @@ void output_angles()
     ypr[0] = TO_DEG(yaw);
     ypr[1] = TO_DEG(pitch);
     ypr[2] = TO_DEG(roll);
-    Serial.write((byte*) ypr, 12); // No new-line
+    Serial.write((byte*) ypr, 12);  // No new-line
   }
   else if (output_mode == OUTPUT__MODE_ANGLES_TEXT)
   {

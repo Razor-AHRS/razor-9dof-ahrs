@@ -1,4 +1,4 @@
-Android Interface for Razor AHRS v1.3.3
+Android Interface for Razor AHRS v1.4.0
 
 Released under GNU GPL (General Public License) v3.0
 Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
