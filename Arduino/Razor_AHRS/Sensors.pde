@@ -126,7 +126,6 @@ void Read_Magn()
     magnetom[2] = -1 * (((int) buff[2]) << 8) | buff[3];  // Z axis (internal sensor -z axis)
 // 9DOF Sensor Stick SEN-10183 and SEN-10321 using HMC5843 magnetometer
 #elif (HW__VERSION_CODE == 10183) || (HW__VERSION_CODE == 10321)
-asdf
     // MSB byte first, then LSB; X, Y, Z
     magnetom[0] = (((int) buff[0]) << 8) | buff[1];       // X axis (internal sensor x axis)
     magnetom[1] = -1 * (((int) buff[2]) << 8) | buff[3];  // Y axis (internal sensor -y axis)
