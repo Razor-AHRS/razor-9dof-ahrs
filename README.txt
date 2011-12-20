@@ -1,7 +1,8 @@
 Razor AHRS Firmware and Test Sketch v1.4.0
 
 9 Degree of Measurement Attitude and Heading Reference System
-for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736) and "9DOF Sensor Stick" (SEN-10183 and SEN-10724)
+for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736) 
+and "9DOF Sensor Stick" (SEN-10183, SEN-10321 and SEN-10724)
 
 Released under GNU GPL (General Public License) v3.0
 Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin

@@ -1,7 +1,8 @@
 /***************************************************************************************************************
 * Razor AHRS Firmware v1.4.0
 * 9 Degree of Measurement Attitude and Heading Reference System
-* for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736) and "9DOF Sensor Stick" (SEN-10183 and SEN-10724)
+* for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
+* and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
 *
 * Released under GNU GPL (General Public License) v3.0
 * Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
@@ -36,7 +37,7 @@
 *     * v1.3.3
 *       * Improved synching.
 *     * v1.4.0
-*       * Added support for "9DOF Sensor Stick" (versions SEN-10183 and SEN-10724).
+*       * Added support for SparkFun "9DOF Sensor Stick" (versions SEN-10183, SEN-10321 and SEN-10724).
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
@@ -45,7 +46,7 @@
 ***************************************************************************************************************/
 
 /*
-  9DOF Razor IMU hardware version - SEN-10125 and SEN-10736
+  "9DOF Razor IMU" hardware versions: SEN-10125 and SEN-10736
 
   ATMega328@3.3V, 8MHz
 
@@ -54,13 +55,21 @@
   HMC5883L : Magnetometer on SEN-10736
   ITG-3200 : Gyro
 
-  Programmer  : 3.3v FTDI
   Arduino IDE : Select board "Arduino Pro or Pro Mini (3.3v, 8Mhz) w/ATmega328"
 */
 
 /*
+  "9DOF Sensor Stick" hardware versions: SEN-10183, SEN-10321 and SEN-10724
+
+  ADXL345  : Accelerometer
+  HMC5843  : Magnetometer on SEN-10183 and SEN-10321
+  HMC5883L : Magnetometer on SEN-10724
+  ITG-3200 : Gyro
+*/
+
+/*
   Axis definition (differs from definition printed on the board!):
-    X axis pointing forward (to the FTDI connector)
+    X axis pointing forward (towards the short edge with the connector holes)
     Y axis pointing to the right
     and Z axis pointing down.
     
@@ -116,10 +125,11 @@
 // HARDWARE OPTIONS
 /*****************************************************************/
 // Select your hardware here by uncommenting one line!
-//#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125", which uses HMC5843 magnetometer
-//#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736", which uses HMC5883L magnetometer
-//#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183", which uses HMC5843 magnetometer
-//#define HW__VERSION_CODE 10724 // SparkFun "9DOF Sensor Stick" version "SEN-10724", which uses HMC5883L magnetometer
+//#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
+//#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
+//#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
+//#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
+//#define HW__VERSION_CODE 10724 // SparkFun "9DOF Sensor Stick" version "SEN-10724" (HMC5883L magnetometer)
 
 
 // OUTPUT OPTIONS
