@@ -60,24 +60,23 @@ int main()
     // errors and data updates using the callbacks on_data() and on_error().
     razor = new RazorAHRS(serial_port_name, on_data, on_error);
     
-    // NOTE: If these callback functions were members of a class and no global
+    // NOTE: If these callback functions were members of a class and not global
     // functions, you would have to bind them before passing. Like this:
     
     // class Callback
     // {
     //   public:
-    //     void on_data(float *ypr) { }
+    //     void on_data(const float ypr[]) { }
     //     void on_error(const string &msg) { }
     // };
     
     // Callback c;
     
     // razor = new RazorAHRS(serial_port_name,
-    //    bind(&Callback::on_data, c, placeholders::_1),
-    //    bind(&Callback::on_data, c, placeholders::_1));
+    //    bind(&Callback::on_data, &c, placeholders::_1),
+    //    bind(&Callback::on_error, &c, placeholders::_1));
     
-    // If you're calling from inside of "c" you would of course use "*this" instead of "c".
-
+    // If you're calling from inside of "c" you would of course use "this" instead of "&c".
   }
   catch(runtime_error &e)
   {
