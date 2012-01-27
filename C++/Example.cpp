@@ -19,9 +19,10 @@
 using namespace std;
 
 
-// Set  your serial port here!
-const string serial_port_name = "/dev/tty.FireFly-6162-SPP"; 
+// Set your serial port here!
+//const string serial_port_name = "/dev/tty.FireFly-6162-SPP"; 
 //const string serial_port_name = "/dev/tty.usbserial-A700eEhN";
+const string serial_port_name = "/dev/ttyUSB0"; // a good guess on linux
 
 
 // Razor error callback handler

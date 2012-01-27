@@ -148,9 +148,12 @@ RazorAHRS::_init_razor()
     // no data available
     else if (result == 0)
       usleep(1000); // sleep 1ms
-    // error
+    // error?
     else
-      throw runtime_error("Can not read from serial port.");  
+    {
+      if (errno != EAGAIN && errno != EINTR)
+        throw runtime_error("Can not read from serial port (1).");
+    }
 
     // check timeout
     gettimeofday(&t2, NULL);
@@ -191,14 +194,17 @@ RazorAHRS::_init_razor()
       if (_read_token(config_synch_reply, in))
         break;  // alrighty
     }
-    // error
+    // error?
     else
-      throw runtime_error("Can not read from serial port.");  
+    {
+      if (errno != EAGAIN && errno != EINTR)
+        throw runtime_error("Can not read from serial port (2).");  
+    }
   }
   
-  // set semi-blocking I/O blocking again
-  if (_set_nonblocking_io() == -1)
-    return false;
+  // we keep using blocking I/O
+  //if (_set_blocking_io() == -1)
+  //  return false;
   
   return true;
 }
@@ -296,12 +302,16 @@ RazorAHRS::_thread(void *arg)
         _input_pos = 0;
       }
     }
+    // error?
     else if (result < 0)
     {
-      error("Can not read from serial port.");
-      return arg;
+      if (errno != EAGAIN && errno != EINTR)
+      {
+        error("Can not read from serial port (3).");
+        return arg;
+      }
     }
-    // else if error was 0, no data was available
+    // else if result is 0, no data was available
   }
 
   return arg;
