@@ -1,7 +1,7 @@
 Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.0
 
 Released under GNU GPL (General Public License) v3.0
-Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+Copyright (C) 2011, 2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 
 
 Infos, updates, bug reports and feedback:

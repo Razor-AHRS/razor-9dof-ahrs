@@ -1,15 +1,15 @@
-/*************************************************************************************
+/***************************************************************************************************
 * Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.0
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+* Copyright (C) 2011, 2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
 * Infos, updates, bug reports and feedback:
 *     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
-*************************************************************************************/
+***************************************************************************************************/
 
 #ifndef RAZORAHRS_H
 #define RAZORAHRS_H

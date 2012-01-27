@@ -1,15 +1,15 @@
-/*************************************************************************************
+/***************************************************************************************************
 * Test Program: Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.0
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+* Copyright (C) 2011, 2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
 * Infos, updates, bug reports and feedback:
 *     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
-*************************************************************************************/
+***************************************************************************************************/
 
 #include <iostream>   // cout()
 #include <stdexcept>  // runtime_error
@@ -21,8 +21,8 @@ using namespace std;
 
 // Set your serial port here!
 //const string serial_port_name = "/dev/tty.FireFly-6162-SPP"; 
-//const string serial_port_name = "/dev/tty.usbserial-A700eEhN";
-const string serial_port_name = "/dev/ttyUSB0"; // a good guess on linux
+const string serial_port_name = "/dev/tty.usbserial-A700eEhN";
+//const string serial_port_name = "/dev/ttyUSB0"; // a good guess on linux
 
 
 // Razor error callback handler
