@@ -1,11 +1,11 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.4.0
+* Razor AHRS Firmware v1.4.1
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
 * and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2011 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+* Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 *
 * Infos, updates, bug reports and feedback:
 *     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
@@ -38,11 +38,13 @@
 *       * Improved synching.
 *     * v1.4.0
 *       * Added support for SparkFun "9DOF Sensor Stick" (versions SEN-10183, SEN-10321 and SEN-10724).
+*     * v1.4.1
+*       * Added output modes to read raw and/or calibrated sensor data in text or binary format.
+*       * Added static magnetometer soft iron distortion compensation
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
 *   * Use self-test and temperature-compensation features of the sensors.
-*   * Add binary output of unfused sensor data for all 9 axes.
 ***************************************************************************************************************/
 
 /*
@@ -81,29 +83,56 @@
 */
 
 /*
-  Commands that the firmware understands:
+  Serial commands that the firmware understands:
   
-  "#o<param>" - Set output parameter. The available options are:
-      "#o0" - Disable continuous streaming output.
-      "#o1" - Enable continuous streaming output.
-      "#ob" - Output angles in binary format (yaw/pitch/roll as binary float, so one output frame
+  "#o<params>" - Set OUTPUT mode and parameters. The available options are:
+  
+      // Streaming output
+      "#o0" - DISABLE continuous streaming output. Also see #f below.
+      "#o1" - ENABLE continuous streaming output.
+      
+      // Angles output
+      "#ob" - Output angles in BINARY format (yaw/pitch/roll as binary float, so one output frame
               is 3x4 = 12 bytes long).
-      "#ot" - Output angles in text format (Output frames have form like "#YPR=-142.28,-5.38,33.52",
+      "#ot" - Output angles in TEXT format (Output frames have form like "#YPR=-142.28,-5.38,33.52",
               followed by carriage return and line feed [\r\n]).
-      "#os" - Output (calibrated) sensor data of all 9 axes in text format. One frame consist of
-              three lines - one for each sensor.
-      "#oc" - Go to calibration output mode.
-      "#on" - When in calibration mode, go on to calibrate next sensor.
-      "#oe0" - Disable error message output.
-      "#oe1" - Enable error message output.
+      
+      // Sensor calibration
+      "#oc" - Go to CALIBRATION output mode.
+      "#on" - When in calibration mode, go on to calibrate NEXT sensor.
+      
+      // Sensor data output
+      "#osct" - Output CALIBRATED SENSOR data of all 9 axes in TEXT format.
+                One frame consist of three lines - one for each sensor: acc, mag, gyr.
+      "#osrt" - Output RAW SENSOR data of all 9 axes in TEXT format.
+                One frame consist of three lines - one for each sensor: acc, mag, gyr.
+      "#osbt" - Output BOTH raw and calibrated SENSOR data of all 9 axes in TEXT format.
+                One frame consist of six lines - like #osrt and #osct combined (first RAW, then CALIBRATED).
+                NOTE: This is a lot of number-to-text conversion work for the little 8MHz chip on the Razor boards.
+                In fact it's too much and an output frame rate of 50Hz can not be maintained. #osbb.
+      "#oscb" - Output CALIBRATED SENSOR data of all 9 axes in BINARY format.
+                One frame consist of three 3x3 float values = 36 bytes. Order is: acc x/y/z, mag x/y/z, gyr x/y/z.
+      "#osrb" - Output RAW SENSOR data of all 9 axes in BINARY format.
+                One frame consist of three 3x3 float values = 36 bytes. Order is: acc x/y/z, mag x/y/z, gyr x/y/z.
+      "#osbb" - Output BOTH raw and calibrated SENSOR data of all 9 axes in BINARY format.
+                One frame consist of 2x36 = 72 bytes - like #osrb and #oscb combined (first RAW, then CALIBRATED).
+      
+      // Error message output        
+      "#oe0" - Disable ERROR message output.
+      "#oe1" - Enable ERROR message output.
+    
     
   "#f" - Request one output frame - useful when continuous output is disabled and updates are
-         required in larger intervals only.
+         required in larger intervals only. Though #f only requests one reply, replies are still
+         bound to the internal 20ms (50Hz) time raster. So worst case delay that #f can add is 19.99ms.
+         
+         
   "#s<xy>" - Request synch token - useful to find out where the frame boundaries are in a continuous
          binary stream or to see if tracker is present and answering. The tracker will send
          "#SYNCH<xy>\r\n" in response (so it's possible to read using a readLine() function).
          x and y are two mandatory but arbitrary bytes that can be used to find out which request
          the answer belongs to.
+          
           
   ("#C" and "#D" - Reserved for communication with optional Bluetooth module.)
   
@@ -125,7 +154,8 @@
 // HARDWARE OPTIONS
 /*****************************************************************/
 // Select your hardware here by uncommenting one line!
-//#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
+//TODO
+#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
 //#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
@@ -142,13 +172,19 @@
 // Code is tuned for 20ms, so better leave it like that
 #define OUTPUT__DATA_INTERVAL 20  // in milliseconds
 
-// Output mode
+// Output mode definitions (do not change)
 #define OUTPUT__MODE_CALIBRATE_SENSORS 0 // Outputs sensor min/max values as text for manual calibration
-#define OUTPUT__MODE_ANGLES_TEXT 1 // Outputs yaw/pitch/roll in degrees as text
-#define OUTPUT__MODE_ANGLES_BINARY 2 // Outputs yaw/pitch/roll in degrees as binary float
-#define OUTPUT__MODE_SENSORS_TEXT 3 // Outputs (calibrated) sensor values for all 9 axes as text
-// Select your startup output mode here!
-int output_mode = OUTPUT__MODE_ANGLES_TEXT;
+#define OUTPUT__MODE_ANGLES 1 // Outputs yaw/pitch/roll in degrees
+#define OUTPUT__MODE_SENSORS_CALIB 2 // Outputs calibrated sensor values for all 9 axes
+#define OUTPUT__MODE_SENSORS_RAW 3 // Outputs raw (uncalibrated) sensor values for all 9 axes
+#define OUTPUT__MODE_SENSORS_BOTH 4 // Outputs calibrated AND raw sensor values for all 9 axes
+// Output format definitions (do not change)
+#define OUTPUT__FORMAT_TEXT 0 // Outputs data as text
+#define OUTPUT__FORMAT_BINARY 1 // Outputs data as binary float
+
+// Select your startup output mode and format here!
+int output_mode = OUTPUT__MODE_ANGLES;
+int output_format = OUTPUT__FORMAT_TEXT;
 
 // Select if serial continuous streaming output is enabled per default on startup.
 #define OUTPUT__STARTUP_STREAM_ON true  // true or false
@@ -175,14 +211,14 @@ boolean output_errors = false;  // true or false
 // Put MIN/MAX and OFFSET readings for your board here!
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-#define ACCEL_X_MIN ((float) -250)
+/*#define ACCEL_X_MIN ((float) -250)
 #define ACCEL_X_MAX ((float) 250)
 #define ACCEL_Y_MIN ((float) -250)
 #define ACCEL_Y_MAX ((float) 250)
 #define ACCEL_Z_MIN ((float) -250)
 #define ACCEL_Z_MAX ((float) 250)
 
-// Magnetometer
+// Magnetometer (standard calibration)
 // "magn x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
 #define MAGN_X_MIN ((float) -600)
 #define MAGN_X_MAX ((float) 600)
@@ -191,13 +227,20 @@ boolean output_errors = false;  // true or false
 #define MAGN_Z_MIN ((float) -600)
 #define MAGN_Z_MAX ((float) 600)
 
+// Magnetometer (extended calibration)
+// Uncommend to use extended magnetometer calibration (compensates hard & soft iron errors)
+//#define CALIBRATION__MAGN_USE_EXTENDED true
+//const float magn_ellipsoid_center[3] = {0, 0, 0};
+//const float magn_ellipsoid_transform[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+
 // Gyroscope
 // "gyro x,y,z (current/average) = .../OFFSET_X  .../OFFSET_Y  .../OFFSET_Z
 #define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
-
-/*
+*/
+//TODO
+/**/
 // Calibration example:
 // "accel x,y,z (min/max) = -278.00/270.00  -254.00/284.00  -294.00/235.00"
 #define ACCEL_X_MIN ((float) -278)
@@ -208,18 +251,23 @@ boolean output_errors = false;  // true or false
 #define ACCEL_Z_MAX ((float) 235)
 
 // "magn x,y,z (min/max) = -511.00/581.00  -516.00/568.00  -489.00/486.00"
-#define MAGN_X_MIN ((float) -511)
-#define MAGN_X_MAX ((float) 581)
-#define MAGN_Y_MIN ((float) -516)
-#define MAGN_Y_MAX ((float) 568)
-#define MAGN_Z_MIN ((float) -489)
-#define MAGN_Z_MAX ((float) 486)
+//#define MAGN_X_MIN ((float) -511)
+//#define MAGN_X_MAX ((float) 581)
+//#define MAGN_Y_MIN ((float) -516)
+//#define MAGN_Y_MAX ((float) 568)
+//#define MAGN_Z_MIN ((float) -489)
+//#define MAGN_Z_MAX ((float) 486)
+
+// or:
+#define CALIBRATION__MAGN_USE_EXTENDED true
+const float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
+const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
 
 //"gyro x,y,z (current/average) = -32.00/-34.82  102.00/100.41  -16.00/-16.38"
 #define GYRO_AVERAGE_OFFSET_X ((float) -34.82)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 100.41)
 #define GYRO_AVERAGE_OFFSET_Z ((float) -16.38)
-*/
+/**/
 
 
 // DEBUG OPTIONS
@@ -246,7 +294,7 @@ boolean output_errors = false;  // true or false
 // Check if hardware version code is defined
 #ifndef HW__VERSION_CODE
   // Generate compile error
-  #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.pde!
+  #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.pde (or .ino)!
 #endif
 
 #include <Wire.h>
@@ -291,6 +339,7 @@ float accel_max[3];
 float magnetom[3];
 float magnetom_min[3];
 float magnetom_max[3];
+float magnetom_tmp[3];
 
 float gyro[3];
 float gyro_average[3];
@@ -375,9 +424,15 @@ void compensate_sensor_errors() {
     accel[2] = (accel[2] - ACCEL_Z_OFFSET) * ACCEL_Z_SCALE;
 
     // Compensate magnetometer error
+#if CALIBRATION__MAGN_USE_EXTENDED == true
+    for (int i = 0; i < 3; i++)
+      magnetom_tmp[i] = magnetom[i] - magn_ellipsoid_center[i];
+    Matrix_Vector_Multiply(magn_ellipsoid_transform, magnetom_tmp, magnetom);
+#else
     magnetom[0] = (magnetom[0] - MAGN_X_OFFSET) * MAGN_X_SCALE;
     magnetom[1] = (magnetom[1] - MAGN_Y_OFFSET) * MAGN_Y_SCALE;
     magnetom[2] = (magnetom[2] - MAGN_Z_OFFSET) * MAGN_Z_SCALE;
+#endif
 
     // Compensate gyroscope error
     gyro[0] -= GYRO_AVERAGE_OFFSET_X;
@@ -485,16 +540,36 @@ void loop()
           reset_calibration_session_flag = true;
         }
         else if (output_param == 't') // Output angles as _t_ext
-          output_mode = OUTPUT__MODE_ANGLES_TEXT;
-        else if (output_param == 'b') // Output angles in _b_inary form
-          output_mode = OUTPUT__MODE_ANGLES_BINARY;
+        {
+          output_mode = OUTPUT__MODE_ANGLES;
+          output_format = OUTPUT__FORMAT_TEXT;
+        }
+        else if (output_param == 'b') // Output angles in _b_inary format
+        {
+          output_mode = OUTPUT__MODE_ANGLES;
+          output_format = OUTPUT__FORMAT_BINARY;
+        }
         else if (output_param == 'c') // Go to _c_alibration mode
         {
           output_mode = OUTPUT__MODE_CALIBRATE_SENSORS;
           reset_calibration_session_flag = true;
         }
-        else if (output_param == 's') // Output _s_ensor values as text
-          output_mode = OUTPUT__MODE_SENSORS_TEXT;
+        else if (output_param == 's') // Output _s_ensor values
+        {
+          char values_param = readChar();
+          char format_param = readChar();
+          if (values_param == 'r')  // Output _r_aw sensor values
+            output_mode = OUTPUT__MODE_SENSORS_RAW;
+          else if (values_param == 'c')  // Output _c_alibrated sensor values
+            output_mode = OUTPUT__MODE_SENSORS_CALIB;
+          else if (values_param == 'b')  // Output _b_oth sensor values (raw and calibrated)
+            output_mode = OUTPUT__MODE_SENSORS_BOTH;
+
+          if (format_param == 't') // Output values as _t_text
+            output_format = OUTPUT__FORMAT_TEXT;
+          else if (format_param == 'b') // Output values in _b_inary format
+            output_format = OUTPUT__FORMAT_BINARY;
+        }
         else if (output_param == '0') // Disable continuous streaming output
         {
           turn_output_stream_off();
@@ -549,14 +624,7 @@ void loop()
       check_reset_calibration_session();  // Check if this session needs a reset
       if (output_stream_on || output_single_on) output_calibration(curr_calibration_sensor);
     }
-    else if (output_mode == OUTPUT__MODE_SENSORS_TEXT)
-    {
-      // Apply sensor calibration
-      compensate_sensor_errors();
-      
-      if (output_stream_on || output_single_on) output_sensors();
-    }
-    else
+    else if (output_mode == OUTPUT__MODE_ANGLES)  // Output angles
     {
       // Apply sensor calibration
       compensate_sensor_errors();
@@ -569,6 +637,10 @@ void loop()
       Euler_angles();
       
       if (output_stream_on || output_single_on) output_angles();
+    }
+    else  // Output sensor values
+    {      
+      if (output_stream_on || output_single_on) output_sensors();
     }
     
     output_single_on = false;

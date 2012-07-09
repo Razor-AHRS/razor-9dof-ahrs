@@ -3,17 +3,17 @@
 	- set default calibration
 	- set OUTPUT__STARTUP_STREAM_ON true
 	- set other defaults
+	- update version history
 - Processing code:
 	- set serial port number to 0
 - put updated version codes, latest change dates and copyright years everywhere
 - commit
 
 - duplicate the whole thing and
-	- raname outer folder: "Razor AHRS v<version>"
-	- strip all .DS_Store and .svn files/folders (leave 2x .classpath and .project!)
+	- rename outer folder: "Razor AHRS v<version>"
+	- strip all .DS_Store and .svn files/folders (but leave 2x .classpath and .project!)
 	- strip this file
-	- add latest tutorial (from the wiki)?
-		- better leave it online and add old versions to "files" section?
+	- strip Processing/Magnetometer_sampling/magnetom.float file
 - move C++ code elsewhere and
 		- rename "Razor AHRS C++ Interface v<version>"
 		- remove binaries
