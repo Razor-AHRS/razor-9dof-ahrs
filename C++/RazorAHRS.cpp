@@ -1,10 +1,10 @@
 /***************************************************************************************************
-* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.0
+* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.1
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2011, 2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+* Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
 * Infos, updates, bug reports and feedback:
@@ -15,8 +15,9 @@
 #include <cassert>
 
 RazorAHRS::RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
-    int connect_timeout_ms, speed_t speed)
-    : _input_pos(0)
+    Mode mode, int connect_timeout_ms, speed_t speed)
+    : _mode(mode)
+    , _input_pos(0)
     , _connect_timeout_ms(connect_timeout_ms)
     , data(data_func)
     , error(error_func)
@@ -171,12 +172,18 @@ RazorAHRS::_init_razor()
   
   
   /* configure tracker */
-  // set binary output mode, enable continuous streaming, disable errors and
+  // set correct binary output mode, enable continuous streaming, disable errors and
   // request synch token. So we're good, no matter what state the tracker
   // currently is in.
   const string config_synch_id = "01";
-  const string config = "#ob#o1#oe0#s" + config_synch_id;
   const string config_synch_reply = synch_token + config_synch_id + new_line;
+
+  string config = "#o1#oe0#s" + config_synch_id;
+  if (_mode == YAW_PITCH_ROLL) config = "#ob" + config;
+  else if (_mode == ACC_MAG_GYR_RAW) config = "#osrb" + config;
+  else if (_mode == ACC_MAG_GYR_CALIBRATED) config = "#oscb" + config;
+  else throw runtime_error("Can not init: unknown 'mode' parameter.");  
+
   write(_serial_port, config.data(), config.length());
   
   // set blocking I/O
@@ -288,18 +295,35 @@ RazorAHRS::_thread(void *arg)
       // read binary stream
       // (type-punning: aliasing with char* is ok)
       (reinterpret_cast<char*> (&_input_buf))[_input_pos++] = c;
-      if (_input_pos == 12) // we received a full frame
-      {
-        // convert endianess if necessary
-        if (_big_endian())
+      
+      if (_mode == YAW_PITCH_ROLL) {  // 3 floats
+        if (_input_pos == 12) // we received a full frame
         {
-          _swap_endianess(_input_buf.ypr, 3);
+          // convert endianess if necessary
+          if (_big_endian())
+          {
+            _swap_endianess(_input_buf.ypr, 3);
+          }
+          
+          // invoke callback
+          data(_input_buf.ypr);
+          
+          _input_pos = 0;
         }
-        
-        // invoke callback
-        data(_input_buf.ypr);
-        
-        _input_pos = 0;
+      } else { // raw or calibrated sensor data (9 floats)
+        if (_input_pos == 36) // we received a full frame
+        {
+          // convert endianess if necessary
+          if (_big_endian())
+          {
+            _swap_endianess(_input_buf.amg, 9);
+          }
+          
+          // invoke callback
+          data(_input_buf.amg);
+          
+          _input_pos = 0;
+        }
       }
     }
     // error?

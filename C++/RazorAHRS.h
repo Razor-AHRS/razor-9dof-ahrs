@@ -1,10 +1,10 @@
 /***************************************************************************************************
-* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.0
+* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.1
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2011, 2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+* Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
 * Infos, updates, bug reports and feedback:
@@ -35,15 +35,23 @@ using namespace std::tr1;
 // Razor AHRS tracker
 class RazorAHRS
 {
-  public:    
+  public:
+    enum Mode {
+      YAW_PITCH_ROLL,
+      ACC_MAG_GYR_RAW,
+      ACC_MAG_GYR_CALIBRATED
+    };
+
     typedef function<void(const float[])> DataCallbackFunc;
     typedef function<void(const string&)> ErrorCallbackFunc;
 
     RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
-        int connect_timeout_ms = 5000, speed_t speed = B57600);
+        Mode mode, int connect_timeout_ms = 5000, speed_t speed = B57600);
     ~RazorAHRS();
 
   private:
+    Mode _mode;
+  
     // serial port helpers
     bool _open_serial_port(const char *port);
     bool _set_blocking_io();
@@ -63,7 +71,7 @@ class RazorAHRS
     union
     {
       float ypr[3]; // yaw, pitch, roll
-      float amg[3][3];  // future use: accelerometer, magnetometer, gyroscope
+      float amg[9]; // 3 axes of accelerometer, magnetometer and gyroscope
     }
     _input_buf;
     size_t _input_pos;
