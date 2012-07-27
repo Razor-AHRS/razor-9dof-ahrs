@@ -365,8 +365,8 @@ float pitch;
 float roll;
 
 // DCM timing in the main loop
-long timestamp;
-long timestamp_old;
+unsigned long timestamp;
+unsigned long timestamp_old;
 float G_Dt; // Integration time for DCM algorithm
 
 // More output-state variables
