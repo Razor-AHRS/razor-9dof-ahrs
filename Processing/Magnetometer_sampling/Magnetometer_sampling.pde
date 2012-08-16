@@ -17,9 +17,6 @@
   1.2.1 works fine and is still available on the web.
 */
 
-import processing.opengl.*;
-import processing.serial.*;
-
 // IF THE SKETCH CRASHES OR HANGS ON STARTUP, MAKE SURE YOU ARE USING THE RIGHT SERIAL PORT:
 // 1. Have a look at the Processing console output of this sketch.
 // 2. Look for the serial port list and find the port you need (it's the same as in Arduino).
@@ -27,6 +24,10 @@ import processing.serial.*;
 final static int SERIAL_PORT_NUM = 0;
 // 4. Try again.
 
+
+
+import processing.opengl.*;
+import processing.serial.*;
 
 final static int SERIAL_PORT_BAUD_RATE = 57600;
 
@@ -176,7 +177,7 @@ void draw() {
   if (writeFileAndQuit) {    
     // Output file
     try {
-      println("Trying to write file magnetom.float ...");
+      println("Trying to write " + magnetomIndex + " sample points to file magnetom.float ...");
       FileOutputStream fos = new FileOutputStream(sketchPath("magnetom.float"));
       DataOutputStream dos = new DataOutputStream(fos);
       for (int i = 0; i < magnetomIndex; i++) {
