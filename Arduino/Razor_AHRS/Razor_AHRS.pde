@@ -154,8 +154,7 @@
 // HARDWARE OPTIONS
 /*****************************************************************/
 // Select your hardware here by uncommenting one line!
-//TODO
-#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
+//#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
 //#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
@@ -211,7 +210,7 @@ boolean output_errors = false;  // true or false
 // Put MIN/MAX and OFFSET readings for your board here!
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-/*#define ACCEL_X_MIN ((float) -250)
+#define ACCEL_X_MIN ((float) -250)
 #define ACCEL_X_MAX ((float) 250)
 #define ACCEL_Y_MIN ((float) -250)
 #define ACCEL_Y_MAX ((float) 250)
@@ -238,10 +237,10 @@ boolean output_errors = false;  // true or false
 #define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
 #define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
-*/
-//TODO
-/**/
+
+/*
 // Calibration example:
+
 // "accel x,y,z (min/max) = -278.00/270.00  -254.00/284.00  -294.00/235.00"
 #define ACCEL_X_MIN ((float) -278)
 #define ACCEL_X_MAX ((float) 270)
@@ -258,16 +257,21 @@ boolean output_errors = false;  // true or false
 //#define MAGN_Z_MIN ((float) -489)
 //#define MAGN_Z_MAX ((float) 486)
 
-// or:
+// Extended magn
 #define CALIBRATION__MAGN_USE_EXTENDED true
 const float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
 const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
+
+// Extended magn (with Sennheiser HD 485 headphones)
+//#define CALIBRATION__MAGN_USE_EXTENDED true
+//const float magn_ellipsoid_center[3] = {72.3360, 23.0954, 53.6261};
+//const float magn_ellipsoid_transform[3][3] = {{0.879685, 0.000540833, -0.0106054}, {0.000540833, 0.891086, -0.0130338}, {-0.0106054, -0.0130338, 0.997494}};
 
 //"gyro x,y,z (current/average) = -32.00/-34.82  102.00/100.41  -16.00/-16.38"
 #define GYRO_AVERAGE_OFFSET_X ((float) -34.82)
 #define GYRO_AVERAGE_OFFSET_Y ((float) 100.41)
 #define GYRO_AVERAGE_OFFSET_Z ((float) -16.38)
-/**/
+*/
 
 
 // DEBUG OPTIONS
