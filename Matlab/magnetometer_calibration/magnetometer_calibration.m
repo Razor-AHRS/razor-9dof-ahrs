@@ -4,7 +4,7 @@
 % for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 %
 % Released under GNU GPL (General Public License) v3.0
-% Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+% Copyright (C) 2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 % Written by Peter Bartz (peter-bartz@gmx.de)
 %
 % Infos, updates, bug reports and feedback:
@@ -12,20 +12,21 @@
 %******************************************************************************************
 
 % read magnetometer data from Processing Sketch directory
-file = fopen('../../Processing/Magnetometer_sampling/magnetom-circ.float');
+file = fopen('../../Processing/Magnetometer_calibration/magnetom.float');
 [M, c] = fread(file, [3, inf], 'float', 'b');
 
-x = transpose(M(1:3:end));
-y = transpose(M(2:3:end));
-z = transpose(M(3:3:end));
+x = M(1,:)';
+y = M(2,:)';
+z = M(3,:)';
 
 % do ellipsoid fitting
 [e_center, e_radii, e_eigenvecs, e_algebraic] = ellipsoid_fit([x, y, z]);
 
-% compensate magnetometer data
-S = transpose([x - e_center(1), y - e_center(2), z - e_center(3)]); % translate and make array
+% compensate distorted magnetometer data
+% e_eigenvecs is an orthogonal matrix, so ' can be used instead of inv()
+S = [x - e_center(1), y - e_center(2), z - e_center(3)]'; % translate and make array
 scale = inv([e_radii(1) 0 0; 0 e_radii(2) 0; 0 0 e_radii(3)]) * min(e_radii); % scaling matrix
-map = inv(e_eigenvecs); % matrix to map ellipsoid axes to coordinate system axes
+map = e_eigenvecs'; % transformation matrix to map ellipsoid axes to coordinate system axes
 invmap = e_eigenvecs; % inverse of above
 comp = invmap * scale * map;
 S = comp * S; % do compensation
@@ -34,8 +35,8 @@ S = comp * S; % do compensation
 fprintf('In the Razor_AHRS.pde (or .ino), under "SENSOR CALIBRATION" find the section that reads "Magnetometer (extended calibration)"\n');
 fprintf('Replace the existing 3 lines with these:\n\n');
 fprintf('#define CALIBRATION__MAGN_USE_EXTENDED true\n');
-fprintf('const float magn_ellipsoid_center[3] = {%.3g, %.3g, %.3g};\n', e_center);
-fprintf('const float magn_ellipsoid_transform[3][3] = {{%.3g, %.3g, %.3g}, {%.3g, %.3g, %.3g}, {%.3g, %.3g, %.3g}};\n', comp);
+fprintf('const float magn_ellipsoid_center[3] = {%.6g, %.6g, %.6g};\n', e_center);
+fprintf('const float magn_ellipsoid_transform[3][3] = {{%.6g, %.6g, %.6g}, {%.6g, %.6g, %.6g}, {%.6g, %.6g, %.6g}};\n', comp);
 
 % draw ellipsoid fit
 figure;
