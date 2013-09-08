@@ -5,10 +5,11 @@
 * and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
 *
 * Released under GNU GPL (General Public License) v3.0
+* Copyright (C) 2013 Peter Bartz
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 *
 * Infos, updates, bug reports and feedback:
-*     http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
+*     https://github.com/ptrbrtz/razor-9dof-ahrs
 *
 *
 * History:
