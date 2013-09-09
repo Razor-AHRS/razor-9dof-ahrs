@@ -5,15 +5,15 @@ Razor AHRS v1.4.1
 
 Infos, updates, bug reports and feedback: https://github.com/ptrbrtz/razor-9dof-ahrs
 
-Tutorial
----
-
-You find a [detailed tutorial in the Wiki](https://github.com/ptrbrtz/razor-9dof-ahrs/wiki/Tutorial).
-
 Download
 ---
 
 Clone the [repository from GitHub](https://github.com/ptrbrtz/razor-9dof-ahrs) or [download as .zip](https://github.com/ptrbrtz/razor-9dof-ahrs/archive/master.zip).
+
+Tutorial
+---
+
+You find a [detailed tutorial in the Wiki](https://github.com/ptrbrtz/razor-9dof-ahrs/wiki/Tutorial).
 
 Quick setup
 ---
