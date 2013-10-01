@@ -15,7 +15,7 @@
 #include "RazorAHRS.h"
 #include <cassert>
 
-RazorAHRS::RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
+RazorAHRS::RazorAHRS(const std::string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
     Mode mode, int connect_timeout_ms, speed_t speed)
     : _mode(mode)
     , _input_pos(0)
@@ -31,14 +31,14 @@ RazorAHRS::RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallba
 
   // open serial port
   if (port == "")
-    throw runtime_error("No port specified!");
+    throw std::runtime_error("No port specified!");
   if (!_open_serial_port(port.c_str()))
-    throw runtime_error("Could not open serial port!");  
+    throw std::runtime_error("Could not open serial port!");  
       
   // get port attributes
   struct termios tio;
   if (int errorID = tcgetattr(_serial_port, &tio))
-    throw runtime_error("Could not get serial port attributes! Error # " + to_str(errorID));
+    throw std::runtime_error("Could not get serial port attributes! Error # " + to_str(errorID));
   
   /* see http://www.easysw.com/~mike/serial/serial.html */
   /* and also http://linux.die.net/man/3/tcsetattr */
@@ -66,11 +66,11 @@ RazorAHRS::RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallba
   
   // set port speed
   if (int errorID = cfsetispeed(&tio, speed))
-    throw runtime_error(" " + to_str(errorID)
+    throw std::runtime_error(" " + to_str(errorID)
         + ": Could not set new serial port input speed to "
         + to_str(speed) + ".");
   if (int errorID = cfsetospeed(&tio, speed))
-    throw runtime_error(" " + to_str(errorID)
+    throw std::runtime_error(" " + to_str(errorID)
         + ": Could not set new serial port output speed to "
         + to_str(speed) + ".");
 
@@ -78,7 +78,7 @@ RazorAHRS::RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallba
   // must be done after setting speed!
   if (int errorID = tcsetattr(_serial_port, TCSANOW, &tio))
   {
-    throw runtime_error(" " + to_str(errorID)
+    throw std::runtime_error(" " + to_str(errorID)
         + ": Could not set new serial port attributes.");
   }
 
@@ -94,7 +94,7 @@ RazorAHRS::~RazorAHRS()
 }
 
 bool
-RazorAHRS::_read_token(const string &token, char c)
+RazorAHRS::_read_token(const std::string &token, char c)
 {
   if (c == token[_input_pos++])
   {
@@ -119,16 +119,16 @@ RazorAHRS::_init_razor()
   char in;
   int result;
   struct timeval t0, t1, t2;
-  const string synch_token = "#SYNCH";
-  const string new_line = "\r\n";
+  const std::string synch_token = "#SYNCH";
+  const std::string new_line = "\r\n";
 
   // start time
   gettimeofday(&t0, NULL);
 
   // request synch token to see if Razor is really present
-  const string contact_synch_id = "00"; 
-  const string contact_synch_request = "#s" + contact_synch_id; 
-  const string contact_synch_reply = synch_token + contact_synch_id + new_line;
+  const std::string contact_synch_id = "00"; 
+  const std::string contact_synch_request = "#s" + contact_synch_id; 
+  const std::string contact_synch_reply = synch_token + contact_synch_id + new_line;
   write(_serial_port, contact_synch_request.data(), contact_synch_request.length());
   gettimeofday(&t1, NULL);
 
@@ -154,7 +154,7 @@ RazorAHRS::_init_razor()
     else
     {
       if (errno != EAGAIN && errno != EINTR)
-        throw runtime_error("Can not read from serial port (1).");
+        throw std::runtime_error("Can not read from serial port (1).");
     }
 
     // check timeout
@@ -168,7 +168,7 @@ RazorAHRS::_init_razor()
     }
     if (elapsed_ms(t0, t2) > _connect_timeout_ms)
       // timeout -> tracker not present
-      throw runtime_error("Can not init: tracker does not answer.");  
+      throw std::runtime_error("Can not init: tracker does not answer.");
   }
   
   
@@ -176,14 +176,14 @@ RazorAHRS::_init_razor()
   // set correct binary output mode, enable continuous streaming, disable errors and
   // request synch token. So we're good, no matter what state the tracker
   // currently is in.
-  const string config_synch_id = "01";
-  const string config_synch_reply = synch_token + config_synch_id + new_line;
+  const std::string config_synch_id = "01";
+  const std::string config_synch_reply = synch_token + config_synch_id + new_line;
 
-  string config = "#o1#oe0#s" + config_synch_id;
+  std::string config = "#o1#oe0#s" + config_synch_id;
   if (_mode == YAW_PITCH_ROLL) config = "#ob" + config;
   else if (_mode == ACC_MAG_GYR_RAW) config = "#osrb" + config;
   else if (_mode == ACC_MAG_GYR_CALIBRATED) config = "#oscb" + config;
-  else throw runtime_error("Can not init: unknown 'mode' parameter.");  
+  else throw std::runtime_error("Can not init: unknown 'mode' parameter.");  
 
   write(_serial_port, config.data(), config.length());
   
@@ -206,7 +206,7 @@ RazorAHRS::_init_razor()
     else
     {
       if (errno != EAGAIN && errno != EINTR)
-        throw runtime_error("Can not read from serial port (2).");  
+        throw std::runtime_error("Can not read from serial port (2).");
     }
   }
   
@@ -283,9 +283,9 @@ RazorAHRS::_thread(void *arg)
       return arg;
     }
   }
-  catch(runtime_error& e)
+  catch(std::runtime_error& e)
   {
-    error(string("Tracker init failed: ") + string(e.what()));
+    error("Tracker init failed: " + std::string(e.what()));
     return arg;
   }
   
