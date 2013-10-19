@@ -1,21 +1,22 @@
 /******************************************************************************************
-* Test Sketch for Razor AHRS v1.4.1
+* Test Sketch for Razor AHRS v1.4.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2013 Peter Bartz
+* Copyright (C) 2013 Peter Bartz [http://ptrbrtz.net]
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
-* Infos, updates, bug reports and feedback:
+* Infos, updates, bug reports, contributions and feedback:
 *     https://github.com/ptrbrtz/razor-9dof-ahrs
 ******************************************************************************************/
 
 /*
-  NOTE: There seems to be a bug with the serial library in the latest Processing
-  versions 1.5 and 1.5.1: "WARNING: RXTX Version mismatch ...". The previous version
-  1.2.1 works fine and is still available on the web.
+  NOTE: There seems to be a bug with the serial library in Processing versions 1.5
+  and 1.5.1: "WARNING: RXTX Version mismatch ...".
+  Processing 2.0.x seems to work just fine. Later versions may too.
+  Alternatively, the older version 1.2.1 also works and is still available on the web.
 */
 
 import processing.opengl.*;

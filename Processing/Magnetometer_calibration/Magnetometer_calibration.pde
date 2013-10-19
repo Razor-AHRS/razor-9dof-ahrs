@@ -1,25 +1,26 @@
 /******************************************************************************************
-* Magnetometer Sampling Sketch for Razor AHRS v1.4.1
+* Magnetometer Sampling Sketch for Razor AHRS v1.4.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2013 Peter Bartz
+* Copyright (C) 2013 Peter Bartz [http://ptrbrtz.net]
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
-* Infos, updates, bug reports and feedback:
+* Infos, updates, bug reports, contributions and feedback:
 *     https://github.com/ptrbrtz/razor-9dof-ahrs
 ******************************************************************************************/
 
 /*
-  NOTE: There seems to be a bug with the serial library in the latest Processing
-  versions 1.5 and 1.5.1: "WARNING: RXTX Version mismatch ...". The previous version
-  1.2.1 works fine and is still available on the web.
+  NOTE: There seems to be a bug with the serial library in Processing versions 1.5
+  and 1.5.1: "WARNING: RXTX Version mismatch ...".
+  Processing 2.0.x seems to work just fine. Later versions may too.
+  Alternatively, the older version 1.2.1 also works and is still available on the web.
 */
 
 /*
-  NOTE: You have to install a library, before this sketch can be run!
+  IMPORTANT: You have to install a library, before this sketch can be run!
   We're using EJML for matrix math, because it's really fast:
   http://code.google.com/p/java-matrix-benchmark/
   Also, it's released under LGPL, which fits well with our GPL.
@@ -29,6 +30,7 @@
   create a folder "library" inside "EJML" and put the .jar inside. Rename to EJML.jar. So you
   should have "libraries/EJML/library/EJML.jar". Restart Processing and you're good.
   More info on installing libraries in Processing: http://wiki.processing.org/w/How_to_Install_a_Contributed_Library
+  Tested to be working with EJML 0.17 and 0.23.
 */
 import org.ejml.data.*;
 import org.ejml.simple.*;
@@ -45,6 +47,7 @@ final static int SERIAL_PORT_NUM = 0;
 
 import processing.opengl.*;
 import processing.serial.*;
+import java.io.*;
 
 final static int SERIAL_PORT_BAUD_RATE = 57600;
 
@@ -361,7 +364,7 @@ void outputCalibration() {
   println("\n");
 
   // Output calibration
-  System.out.printf("In the Razor_AHRS.pde (or .ino), under 'SENSOR CALIBRATION' find the section that reads 'Magnetometer (extended calibration)'\n");
+  System.out.printf("In the Razor_AHRS.ino, under 'SENSOR CALIBRATION' find the section that reads 'Magnetometer (extended calibration)'\n");
   System.out.printf("Replace the existing 3 lines with these:\n\n");
   System.out.printf("#define CALIBRATION__MAGN_USE_EXTENDED true\n");
   System.out.printf("const float magn_ellipsoid_center[3] = {%.6g, %.6g, %.6g};\n", center.get(0), center.get(1), center.get(2));

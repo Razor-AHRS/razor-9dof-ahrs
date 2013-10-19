@@ -1,14 +1,14 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.4.1
+* Razor AHRS Firmware v1.4.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
 * and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2013 Peter Bartz
+* Copyright (C) 2013 Peter Bartz [http://ptrbrtz.net]
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 *
-* Infos, updates, bug reports and feedback:
+* Infos, updates, bug reports, contributions and feedback:
 *     https://github.com/ptrbrtz/razor-9dof-ahrs
 *
 *
@@ -42,6 +42,8 @@
 *     * v1.4.1
 *       * Added output modes to read raw and/or calibrated sensor data in text or binary format.
 *       * Added static magnetometer soft iron distortion compensation
+*     * v1.4.2
+*       * (No core firmware changes)
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
@@ -218,7 +220,7 @@ boolean output_errors = false;  // true or false
 #define ACCEL_Z_MIN ((float) -250)
 #define ACCEL_Z_MAX ((float) 250)
 
-// Magnetometer (standard calibration)
+// Magnetometer (standard calibration mode)
 // "magn x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
 #define MAGN_X_MIN ((float) -600)
 #define MAGN_X_MAX ((float) 600)
@@ -227,7 +229,7 @@ boolean output_errors = false;  // true or false
 #define MAGN_Z_MIN ((float) -600)
 #define MAGN_Z_MAX ((float) 600)
 
-// Magnetometer (extended calibration)
+// Magnetometer (extended calibration mode)
 // Uncommend to use extended magnetometer calibration (compensates hard & soft iron errors)
 //#define CALIBRATION__MAGN_USE_EXTENDED true
 //const float magn_ellipsoid_center[3] = {0, 0, 0};
@@ -242,12 +244,12 @@ boolean output_errors = false;  // true or false
 /*
 // Calibration example:
 
-// "accel x,y,z (min/max) = -278.00/270.00  -254.00/284.00  -294.00/235.00"
-#define ACCEL_X_MIN ((float) -278)
-#define ACCEL_X_MAX ((float) 270)
-#define ACCEL_Y_MIN ((float) -254)
-#define ACCEL_Y_MAX ((float) 284)
-#define ACCEL_Z_MIN ((float) -294)
+// "accel x,y,z (min/max) = -277.00/264.00  -256.00/278.00  -299.00/235.00"
+#define ACCEL_X_MIN ((float) -277)
+#define ACCEL_X_MAX ((float) 264)
+#define ACCEL_Y_MIN ((float) -256)
+#define ACCEL_Y_MAX ((float) 278)
+#define ACCEL_Z_MIN ((float) -299)
 #define ACCEL_Z_MAX ((float) 235)
 
 // "magn x,y,z (min/max) = -511.00/581.00  -516.00/568.00  -489.00/486.00"
@@ -268,10 +270,10 @@ const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.0
 //const float magn_ellipsoid_center[3] = {72.3360, 23.0954, 53.6261};
 //const float magn_ellipsoid_transform[3][3] = {{0.879685, 0.000540833, -0.0106054}, {0.000540833, 0.891086, -0.0130338}, {-0.0106054, -0.0130338, 0.997494}};
 
-//"gyro x,y,z (current/average) = -32.00/-34.82  102.00/100.41  -16.00/-16.38"
-#define GYRO_AVERAGE_OFFSET_X ((float) -34.82)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 100.41)
-#define GYRO_AVERAGE_OFFSET_Z ((float) -16.38)
+//"gyro x,y,z (current/average) = -40.00/-42.05  98.00/96.20  -18.00/-18.36"
+#define GYRO_AVERAGE_OFFSET_X ((float) -42.05)
+#define GYRO_AVERAGE_OFFSET_Y ((float) 96.20)
+#define GYRO_AVERAGE_OFFSET_Z ((float) -18.36)
 */
 
 
@@ -299,7 +301,7 @@ const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.0
 // Check if hardware version code is defined
 #ifndef HW__VERSION_CODE
   // Generate compile error
-  #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.pde (or .ino)!
+  #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.ino!
 #endif
 
 #include <Wire.h>

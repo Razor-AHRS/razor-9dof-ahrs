@@ -20,7 +20,7 @@ Quick setup
 
 ### Razor AHRS Firmware and *Processing* Test Sketch
 
-Select your hardware in `Arduino/Razor_AHRS/Razor_AHRS.pde` under `"USER SETUP AREA"` / `"HARDWARE OPTIONS"`.  
+Select your hardware in `Arduino/Razor_AHRS/Razor_AHRS.ino` under `"USER SETUP AREA"` / `"HARDWARE OPTIONS"`.
 Upload the firmware using *Arduino*.  
 Run `Processing/Razor_AHRS_test/Razor_AHRS_test.pde` using *Processing*.
 
