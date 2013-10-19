@@ -25,9 +25,6 @@
 #include <fcntl.h>   // for open(), ...
 #include <errno.h>
 #include <sys/time.h>
- 
-using namespace std;
-using namespace std::tr1;
 
 #ifndef _REENTRANT
 #error You need to compile with _REENTRANT defined since this uses threads!
@@ -43,10 +40,10 @@ class RazorAHRS
       ACC_MAG_GYR_CALIBRATED
     };
 
-    typedef function<void(const float[])> DataCallbackFunc;
-    typedef function<void(const string&)> ErrorCallbackFunc;
+    typedef std::tr1::function<void(const float[])> DataCallbackFunc;
+    typedef std::tr1::function<void(const std::string&)> ErrorCallbackFunc;
 
-    RazorAHRS(const string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
+    RazorAHRS(const std::string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
         Mode mode, int connect_timeout_ms = 5000, speed_t speed = B57600);
     ~RazorAHRS();
 
@@ -59,7 +56,7 @@ class RazorAHRS
     bool _set_nonblocking_io();
     bool _is_io_blocking();
 
-    bool _read_token(const string &token, char c);
+    bool _read_token(const std::string &token, char c);
     bool _init_razor();
     
     // timing
@@ -109,9 +106,9 @@ class RazorAHRS
       return reinterpret_cast<RazorAHRS*> (arg)->_thread(NULL);
     }
     
-    string to_str(int i)
+    std::string to_str(int i)
     {
-      stringstream ss;
+      std::stringstream ss;
       ss << i;
       return ss.str();
     }
