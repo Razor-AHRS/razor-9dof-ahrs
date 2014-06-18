@@ -183,6 +183,8 @@ RazorAHRS::_init_razor()
   if (_mode == YAW_PITCH_ROLL) config = "#ob" + config;
   else if (_mode == ACC_MAG_GYR_RAW) config = "#osrb" + config;
   else if (_mode == ACC_MAG_GYR_CALIBRATED) config = "#oscb" + config;
+  else if (_mode == YAW_PITCH_ROLL_ACC_MAG_GYR_RAW) config = "#omrb" + config;
+  else if (_mode == YAW_PITCH_ROLL_ACC_MAG_GYR_CALIBRATED) config = "#omcb" + config;
   else throw std::runtime_error("Can not init: unknown 'mode' parameter.");  
 
   write(_serial_port, config.data(), config.length());
@@ -308,6 +310,20 @@ RazorAHRS::_thread(void *arg)
           
           // invoke callback
           data(_input_buf.ypr);
+          
+          _input_pos = 0;
+        }
+      } else if ((_mode == YAW_PITCH_ROLL_ACC_MAG_GYR_CALIBRATED)||(_mode == YAW_PITCH_ROLL_ACC_MAG_GYR_RAW)){ //both YPR and Sensor data (12 floats) 
+        if (_input_pos == 48) // we received a full frame
+        {
+          // convert endianess if necessary
+          if (_big_endian())
+          {
+            _swap_endianess(_input_buf.ypramg, 12);
+          }
+          
+          // invoke callback
+          data(_input_buf.amg);
           
           _input_pos = 0;
         }

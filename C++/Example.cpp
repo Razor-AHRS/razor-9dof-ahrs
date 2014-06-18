@@ -23,8 +23,8 @@ using namespace std;
 
 // Set your serial port here!
 //const string serial_port_name = "/dev/tty.FireFly-6162-SPP"; 
-const string serial_port_name = "/dev/tty.usbserial-A700eEhN";
-//const string serial_port_name = "/dev/ttyUSB0"; // a good guess on linux
+//const string serial_port_name = "/dev/tty.usbserial-A700eEhN";
+const string serial_port_name = "/dev/ttyUSB0"; // a good guess on linux
 
 
 // Razor error callback handler
@@ -43,8 +43,8 @@ void on_error(const string &msg)
 // holds 3 float values: yaw, pitch and roll.
 void on_data(const float data[])
 {
-  cout << "  " << fixed << setprecision(1) 
-  << "Yaw = " << setw(6) << data[0] << "      Pitch = " << setw(6) << data[1] << "      Roll = " << setw(6) << data[2] << endl;
+  //cout << "  " << fixed << setprecision(1) 
+  //<< "Yaw = " << setw(6) << data[0] << "      Pitch = " << setw(6) << data[1] << "      Roll = " << setw(6) << data[2] << endl;
 
   // NOTE: make a copy of the yaw/pitch/roll data if you want to save it or send it to another
   // thread. Do not save or pass the pointer itself, it will not be valid after this function
@@ -58,6 +58,14 @@ void on_data(const float data[])
   // << "        MAG = " << setw(7) << data[3] << ", " << setw(7) << data[4] << ", " << setw(7) << data[5]
   // << "        GYR = " << setw(7) << data[6] << ", " << setw(7) << data[7] << ", " << setw(7) << data[8] << endl;
 
+  // If you created the Razor object using RazorAHRS::YAW_PITCH_ROLL_ACC_MAG_GYR_CALIBRATED or RazorAHRS::YAW_PITCH_ROLL_ACC_MAG_GYR_RAW
+  // instead of RazorAHRS::YAW_PITCH_ROLL, 'data' would contain 12 values that could be printed like this:
+  
+  cout << "  " << fixed << setprecision(1)
+  << "Yaw = " << setw(6) << data[0] << "      Pitch = " << setw(6) << data[1] << "      Roll = " << setw(6) << data[2]
+  << "        ACC = " << setw(6) << data[3] << ", " << setw(6) << data[4] << ", " << setw(6) << data[5]
+  << "        MAG = " << setw(7) << data[6] << ", " << setw(7) << data[7] << ", " << setw(7) << data[8]
+  << "        GYR = " << setw(7) << data[9] << ", " << setw(7) << data[10] << ", " << setw(7) << data[11] << endl;
 }
 
 RazorAHRS *razor;
@@ -76,7 +84,7 @@ int main()
     // We want to receive yaw/pitch/roll data. If we wanted the unprocessed raw or calibrated sensor
     // data, we would pass RazorAHRS::ACC_MAG_GYR_RAW or RazorAHRS::ACC_MAG_GYR_CALIBRATED
     // instead of RazorAHRS::YAW_PITCH_ROLL.
-    razor = new RazorAHRS(serial_port_name, on_data, on_error, RazorAHRS::YAW_PITCH_ROLL);
+    razor = new RazorAHRS(serial_port_name, on_data, on_error, RazorAHRS::YAW_PITCH_ROLL_ACC_MAG_GYR_CALIBRATED);
     
     // NOTE: If these callback functions were members of a class and not global
     // functions, you would have to bind them before passing. Like this:
