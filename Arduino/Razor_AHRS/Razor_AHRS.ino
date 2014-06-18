@@ -101,12 +101,12 @@
  followed by carriage return and line feed [\r\n]).
  
  // Angles output and sensor data
- "#ombr" - Output angles and raw sensor data in BINARY format (yaw/pitch/roll/acc x/y/z/mag x/y/z/gyr x/y/z as binary float, so one output frame
+ "#omrb" - Output angles and raw sensor data in BINARY format (yaw/pitch/roll/acc x/y/z/mag x/y/z/gyr x/y/z as binary float, so one output frame
  is 12x4 = 48 bytes long).
- "#ombc" - Output angles and calibrated sensor data in BINARY format (yaw/pitch/roll/acc x/y/z/mag x/y/z/gyr x/y/z as binary float, so one output frame
+ "#omcb" - Output angles and calibrated sensor data in BINARY format (yaw/pitch/roll/acc x/y/z/mag x/y/z/gyr x/y/z as binary float, so one output frame
  is 12x4 = 48 bytes long).
- "#omtr" - Output angles and raw sensor data in TEXT format
- "#omtc" - Output angles and calibrated sensor data in TEXT format
+ "#omrt" - Output angles and raw sensor data in TEXT format
+ "#omct" - Output angles and calibrated sensor data in TEXT format
  
  
  // Sensor calibration
@@ -605,8 +605,8 @@ void loop()
         }
         else if (output_param == 'm') // Output angles and sensor values.
         {
-          char format_param = readChar();
           char values_param = readChar();
+          char format_param = readChar();
 
           if (format_param == 't') // Output values as _t_text
             output_format = OUTPUT__FORMAT_TEXT;
