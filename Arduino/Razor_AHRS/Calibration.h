@@ -2,6 +2,7 @@
  * Calibration.h -- AHRS EEPROM-based calibration.
  * Created on: Jul 28, 2014
  * Copyright (C) 2014 Pat Deegan.
+ * Contact: http://flyingcarsandstuff.com/
  *
  *
  *   This program is free software: you can redistribute it and/or modify
