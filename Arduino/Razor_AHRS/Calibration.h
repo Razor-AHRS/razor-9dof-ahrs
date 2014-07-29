@@ -180,7 +180,7 @@ typedef CALIB_STRUCT_DECLARATION RawCalibValuesStruct {
 	char header[5]; // used to verify initialization
 
 	ThreeSpaceMinMax accel; // accelerometer min/maxes
-	ThreeSpaceMinMax magn; 	// magnometer min/maxes
+	ThreeSpaceMinMax magn; 	// magnetometer min/maxes
 	ThreeSpaceVals gyro;	// gyro drifts
 
 	float magn_ellipsoid_center[3]; // more or less supported, as of yet...

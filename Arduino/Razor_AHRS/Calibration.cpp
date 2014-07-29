@@ -149,7 +149,7 @@ void CalibrationValues::showHelp()
 	Serial.println(F("\t* get or set [g/s]"));
 	Serial.println(F("\t* accel, magn, or gyro [a/m/g]"));
 	Serial.println(F("\t* coord: x,y, or z [x/y/z]"));
-	Serial.println(F("For accel and magnometer:"));
+	Serial.println(F("For accel and magnetometer:"));
 	Serial.println(F("\t* min or max [m/M]"));
 	Serial.println(' ');
 	Serial.println(F("Examples: "));
@@ -194,7 +194,7 @@ void CalibrationValues::dumpValues(bool includeCalculated) {
 	Serial.println(F("*** Current Calibration ***"));
 	Serial.println(F("* Accelerometers"));
 	dumpThreeSpaceMinMax(calib_values.accel);
-	Serial.println(F("* Magnometers"));
+	Serial.println(F("* Magnetometers"));
 	dumpThreeSpaceMinMax(calib_values.magn);
 	Serial.println(F("* Gyros"));
 	dumpThreeSpaceVals(calib_values.gyro);

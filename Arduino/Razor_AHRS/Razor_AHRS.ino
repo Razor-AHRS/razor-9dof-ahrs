@@ -152,9 +152,9 @@
   	  "#cD" - Current calibration values dump, including calculated values (accel/magn offsets and scales)
   	  
   	  "#cg<params>" - Get a value.  Params are
-  	  	  	  * [a|m|g] _a_ccelerometer, _m_agnometer, _g_yro
+  	  	  	  * [a|m|g] _a_ccelerometer, _m_agnetometer, _g_yro
   	  	  	  * [x|y|z] x,y, or z sensor
-  	  	  	  * [m|M] min or Max, in the case of accel and magnometer
+  	  	  	  * [m|M] min or Max, in the case of accel and magnetometer
   	  "#cs<params> <value>" - Set a value.  Params are as above, for getting. 
   	  	  	  For example, 
   	  	  	  	  * set the current x accel max:  #csaxM 233.33
