@@ -44,6 +44,12 @@
 *       * Added static magnetometer soft iron distortion compensation
 *     * v1.4.2
 *       * (No core firmware changes)
+*       
+*   * Updated and extended by Patrick Deegan (http://flyingcarsandstuff.com/)
+*     to move calibration values to eeprom and provide for calibration queries and settings through
+*     the serial line: no longer need to compile/install to calibrate!
+*     
+*     
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
@@ -135,6 +141,29 @@
          "#SYNCH<xy>\r\n" in response (so it's possible to read using a readLine() function).
          x and y are two mandatory but arbitrary bytes that can be used to find out which request
          the answer belongs to.
+         
+         
+  "#c<params>" - Calibration get/set, to keep calibration values stored in eeprom.
+  
+  	  "#ch"	- Calibration help message
+  	  
+  	  "#cd" - Current calibration values dump
+  	  
+  	  "#cD" - Current calibration values dump, including calculated values (accel/magn offsets and scales)
+  	  
+  	  "#cg<params>" - Get a value.  Params are
+  	  	  	  * [a|m|g] _a_ccelerometer, _m_agnometer, _g_yro
+  	  	  	  * [x|y|z] x,y, or z sensor
+  	  	  	  * [m|M] min or Max, in the case of accel and magnometer
+  	  "#cs<params> <value>" - Set a value.  Params are as above, for getting. 
+  	  	  	  For example, 
+  	  	  	  	  * set the current x accel max:  #csaxM 233.33
+  	  	  	  	  * get the current y gyro:  #cggx
+  	  	  	  	  * set the current z magn min:	#csmzm -200.00
+  	  	  	  	  * verify the values: #cd
+
+  	  	  	  
+  	  
           
           
   ("#C" and "#D" - Reserved for communication with optional Bluetooth module.)
@@ -207,75 +236,6 @@ boolean output_errors = false;  // true or false
 #define OUTPUT__HAS_RN_BLUETOOTH false  // true or false
 
 
-// SENSOR CALIBRATION
-/*****************************************************************/
-// How to calibrate? Read the tutorial at http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
-// Put MIN/MAX and OFFSET readings for your board here!
-// Accelerometer
-// "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-#define ACCEL_X_MIN ((float) -250)
-#define ACCEL_X_MAX ((float) 250)
-#define ACCEL_Y_MIN ((float) -250)
-#define ACCEL_Y_MAX ((float) 250)
-#define ACCEL_Z_MIN ((float) -250)
-#define ACCEL_Z_MAX ((float) 250)
-
-// Magnetometer (standard calibration mode)
-// "magn x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-#define MAGN_X_MIN ((float) -600)
-#define MAGN_X_MAX ((float) 600)
-#define MAGN_Y_MIN ((float) -600)
-#define MAGN_Y_MAX ((float) 600)
-#define MAGN_Z_MIN ((float) -600)
-#define MAGN_Z_MAX ((float) 600)
-
-// Magnetometer (extended calibration mode)
-// Uncommend to use extended magnetometer calibration (compensates hard & soft iron errors)
-//#define CALIBRATION__MAGN_USE_EXTENDED true
-//const float magn_ellipsoid_center[3] = {0, 0, 0};
-//const float magn_ellipsoid_transform[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
-
-// Gyroscope
-// "gyro x,y,z (current/average) = .../OFFSET_X  .../OFFSET_Y  .../OFFSET_Z
-#define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
-#define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
-
-/*
-// Calibration example:
-
-// "accel x,y,z (min/max) = -277.00/264.00  -256.00/278.00  -299.00/235.00"
-#define ACCEL_X_MIN ((float) -277)
-#define ACCEL_X_MAX ((float) 264)
-#define ACCEL_Y_MIN ((float) -256)
-#define ACCEL_Y_MAX ((float) 278)
-#define ACCEL_Z_MIN ((float) -299)
-#define ACCEL_Z_MAX ((float) 235)
-
-// "magn x,y,z (min/max) = -511.00/581.00  -516.00/568.00  -489.00/486.00"
-//#define MAGN_X_MIN ((float) -511)
-//#define MAGN_X_MAX ((float) 581)
-//#define MAGN_Y_MIN ((float) -516)
-//#define MAGN_Y_MAX ((float) 568)
-//#define MAGN_Z_MIN ((float) -489)
-//#define MAGN_Z_MAX ((float) 486)
-
-// Extended magn
-#define CALIBRATION__MAGN_USE_EXTENDED true
-const float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
-const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
-
-// Extended magn (with Sennheiser HD 485 headphones)
-//#define CALIBRATION__MAGN_USE_EXTENDED true
-//const float magn_ellipsoid_center[3] = {72.3360, 23.0954, 53.6261};
-//const float magn_ellipsoid_transform[3][3] = {{0.879685, 0.000540833, -0.0106054}, {0.000540833, 0.891086, -0.0130338}, {-0.0106054, -0.0130338, 0.997494}};
-
-//"gyro x,y,z (current/average) = -40.00/-42.05  98.00/96.20  -18.00/-18.36"
-#define GYRO_AVERAGE_OFFSET_X ((float) -42.05)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 96.20)
-#define GYRO_AVERAGE_OFFSET_Z ((float) -18.36)
-*/
-
 
 // DEBUG OPTIONS
 /*****************************************************************/
@@ -305,22 +265,7 @@ const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.0
 #endif
 
 #include <Wire.h>
-
-// Sensor calibration scale and offset values
-#define ACCEL_X_OFFSET ((ACCEL_X_MIN + ACCEL_X_MAX) / 2.0f)
-#define ACCEL_Y_OFFSET ((ACCEL_Y_MIN + ACCEL_Y_MAX) / 2.0f)
-#define ACCEL_Z_OFFSET ((ACCEL_Z_MIN + ACCEL_Z_MAX) / 2.0f)
-#define ACCEL_X_SCALE (GRAVITY / (ACCEL_X_MAX - ACCEL_X_OFFSET))
-#define ACCEL_Y_SCALE (GRAVITY / (ACCEL_Y_MAX - ACCEL_Y_OFFSET))
-#define ACCEL_Z_SCALE (GRAVITY / (ACCEL_Z_MAX - ACCEL_Z_OFFSET))
-
-#define MAGN_X_OFFSET ((MAGN_X_MIN + MAGN_X_MAX) / 2.0f)
-#define MAGN_Y_OFFSET ((MAGN_Y_MIN + MAGN_Y_MAX) / 2.0f)
-#define MAGN_Z_OFFSET ((MAGN_Z_MIN + MAGN_Z_MAX) / 2.0f)
-#define MAGN_X_SCALE (100.0f / (MAGN_X_MAX - MAGN_X_OFFSET))
-#define MAGN_Y_SCALE (100.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET))
-#define MAGN_Z_SCALE (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
-
+#include "Calibration.h"
 
 // Gain for gyroscope (ITG-3200)
 #define GYRO_GAIN 0.06957 // Same gain on all axes
@@ -334,7 +279,6 @@ const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.0
 
 // Stuff
 #define STATUS_LED_PIN 13  // Pin number of status LED
-#define GRAVITY 256.0f // "1G reference" used for DCM filter and accelerometer calibration
 #define TO_RAD(x) (x * 0.01745329252)  // *pi/180
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
@@ -433,8 +377,8 @@ void compensate_sensor_errors() {
     // Compensate magnetometer error
 #if CALIBRATION__MAGN_USE_EXTENDED == true
     for (int i = 0; i < 3; i++)
-      magnetom_tmp[i] = magnetom[i] - magn_ellipsoid_center[i];
-    Matrix_Vector_Multiply(magn_ellipsoid_transform, magnetom_tmp, magnetom);
+      magnetom_tmp[i] = magnetom[i] - MAGN_ELLIPS_CENTER[i];
+    Matrix_Vector_Multiply(MAGN_ELLIPS_XFORM, magnetom_tmp, magnetom);
 #else
     magnetom[0] = (magnetom[0] - MAGN_X_OFFSET) * MAGN_X_SCALE;
     magnetom[1] = (magnetom[1] - MAGN_Y_OFFSET) * MAGN_Y_SCALE;
@@ -526,6 +470,14 @@ void loop()
       int command = Serial.read(); // Commands
       if (command == 'f') // request one output _f_rame
         output_single_on = true;
+#ifdef CALIBRATION_USE_EEPROM
+      else if (command == 'c') // _c_alibration request
+      {
+    	  char calibRequest = readChar();
+    	  Calibration.handleRequest(calibRequest);
+
+      }
+#endif
       else if (command == 's') // _s_ynch request
       {
         // Read ID
