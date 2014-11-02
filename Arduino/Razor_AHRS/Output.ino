@@ -87,6 +87,22 @@ void output_sensors_text(char raw_or_calibrated)
   Serial.print(gyro[2]); Serial.println();
 }
 
+void output_both_angles_and_sensors_text()
+{
+  Serial.print("#YPRAG=");
+  Serial.print(TO_DEG(yaw)); Serial.print(",");
+  Serial.print(TO_DEG(pitch)); Serial.print(",");
+  Serial.print(TO_DEG(roll)); Serial.print(",");
+  
+  Serial.print(Accel_Vector[0]); Serial.print(",");
+  Serial.print(Accel_Vector[1]); Serial.print(",");
+  Serial.print(Accel_Vector[2]); Serial.print(",");
+
+  Serial.print(Gyro_Vector[0]); Serial.print(",");
+  Serial.print(Gyro_Vector[1]); Serial.print(",");
+  Serial.print(Gyro_Vector[2]); Serial.println();
+}
+
 void output_sensors_binary()
 {
   Serial.write((byte*) accel, 12);
