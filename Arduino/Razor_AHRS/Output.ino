@@ -96,14 +96,14 @@ void output_sensors_binary()
 
 void output_sensors()
 {
-  if (output_mode == OUTPUT__MODE_SENSORS_RAW)
+  if ((output_mode == OUTPUT__MODE_SENSORS_RAW)||(output_mode == OUTPUT__MODE_ANGLES_SENSORS_RAW))
   {
     if (output_format == OUTPUT__FORMAT_BINARY)
       output_sensors_binary();
     else if (output_format == OUTPUT__FORMAT_TEXT)
       output_sensors_text('R');
   }
-  else if (output_mode == OUTPUT__MODE_SENSORS_CALIB)
+  else if ((output_mode == OUTPUT__MODE_SENSORS_CALIB)||(output_mode == OUTPUT__MODE_ANGLES_SENSORS_CALIB))
   {
     // Apply sensor calibration
     compensate_sensor_errors();

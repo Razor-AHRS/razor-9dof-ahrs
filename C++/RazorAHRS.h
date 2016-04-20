@@ -37,7 +37,9 @@ class RazorAHRS
     enum Mode {
       YAW_PITCH_ROLL,
       ACC_MAG_GYR_RAW,
-      ACC_MAG_GYR_CALIBRATED
+      ACC_MAG_GYR_CALIBRATED,
+      YAW_PITCH_ROLL_ACC_MAG_GYR_RAW,
+      YAW_PITCH_ROLL_ACC_MAG_GYR_CALIBRATED
     };
 
     typedef std::tr1::function<void(const float[])> DataCallbackFunc;
@@ -70,6 +72,7 @@ class RazorAHRS
     {
       float ypr[3]; // yaw, pitch, roll
       float amg[9]; // 3 axes of accelerometer, magnetometer and gyroscope
+      float ypramg[12];
     }
     _input_buf;
     size_t _input_pos;
