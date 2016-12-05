@@ -40,7 +40,7 @@ import org.ejml.ops.*;
 // 1. Have a look at the Processing console output of this sketch.
 // 2. Look for the serial port list and find the port you need (it's the same as in Arduino).
 // 3. Set your port number here:
-final static int SERIAL_PORT_NUM = 0;
+final static int SERIAL_PORT_NUM = 7;
 // 4. Try again.
 
 

@@ -17,7 +17,7 @@
 
 #include <string>
 #include <memory>
-#include <tr1/functional>
+#include <functional>
 #include <stdexcept>
 #include <sstream>
 #include <unistd.h>  // for write(), close(), ...
