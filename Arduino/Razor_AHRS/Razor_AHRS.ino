@@ -44,11 +44,22 @@
 *       * Added static magnetometer soft iron distortion compensation
 *     * v1.4.2
 *       * (No core firmware changes)
+*     * v1.5
+*       * Added support for "9DoF Razor IMU M0": SEN-14001.
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
 *   * Use self-test and temperature-compensation features of the sensors.
 ***************************************************************************************************************/
+
+/*
+  "9DoF Razor IMU M0" hardware versions: SEN-14001
+
+  Arduino IDE : Follow the same instructions as for the default firmware on 
+  https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide 
+  and use an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from 
+  https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library"
+*/
 
 /*
   "9DOF Razor IMU" hardware versions: SEN-10125 and SEN-10736
