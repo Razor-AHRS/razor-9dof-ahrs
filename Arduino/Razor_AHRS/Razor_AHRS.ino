@@ -159,6 +159,7 @@
 // Select your hardware here by uncommenting one line!
 //#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
+//#define HW__VERSION_CODE 14001 // SparkFun "9DoF Razor IMU M0" version "SEN-14001"
 //#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10724 // SparkFun "9DOF Sensor Stick" version "SEN-10724" (HMC5883L magnetometer)
@@ -168,6 +169,13 @@
 /*****************************************************************/
 // Set your serial port baud rate used to send out data here!
 #define OUTPUT__BAUD_RATE 57600
+#if HW__VERSION_CODE == 14001
+// Set your port used to send out data here!
+#define LOG_PORT SERIAL_PORT_USBVIRTUAL
+#else
+// Set your port used to send out data here!
+#define LOG_PORT Serial
+#endif // HW__VERSION_CODE
 
 // Sensor data output interval in milliseconds
 // This may not work, if faster than 20ms (=50Hz)
@@ -211,6 +219,7 @@ boolean output_errors = false;  // true or false
 /*****************************************************************/
 // How to calibrate? Read the tutorial at http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 // Put MIN/MAX and OFFSET readings for your board here!
+// For the M0, only the extended magnetometer calibration seems to be really necessary...
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
 #define ACCEL_X_MIN ((float) -250)
@@ -304,7 +313,19 @@ const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.0
   #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.ino!
 #endif
 
+#if HW__VERSION_CODE == 14001
+// MPU-9250 Digital Motion Processing (DMP) Library
+#include <SparkFunMPU9250-DMP.h>
+
+// Danger - don't change unless using a different platform
+#define MPU9250_INT_PIN 4
+#define SD_CHIP_SELECT_PIN 38
+#define MPU9250_INT_ACTIVE LOW
+
+MPU9250_DMP imu; // Create an instance of the MPU9250_DMP class
+#else
 #include <Wire.h>
+#endif // HW__VERSION_CODE
 
 // Sensor calibration scale and offset values
 #define ACCEL_X_OFFSET ((ACCEL_X_MIN + ACCEL_X_MAX) / 2.0f)
@@ -322,9 +343,14 @@ const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.0
 #define MAGN_Z_SCALE (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
 
 
+
+#if HW__VERSION_CODE == 14001
+#define GYRO_SCALED_RAD(x) (x) // Calculate the scaled gyro readings in radians per second
+#else
 // Gain for gyroscope (ITG-3200)
 #define GYRO_GAIN 0.06957 // Same gain on all axes
 #define GYRO_SCALED_RAD(x) (x * TO_RAD(GYRO_GAIN)) // Calculate the scaled gyro readings in radians per second
+#endif // HW__VERSION_CODE
 
 // DCM parameters
 #define Kp_ROLLPITCH 0.02f
@@ -386,9 +412,13 @@ int num_magn_errors = 0;
 int num_gyro_errors = 0;
 
 void read_sensors() {
+#if HW__VERSION_CODE == 14001
+  loop_imu();
+#else
   Read_Gyro(); // Read gyroscope
   Read_Accel(); // Read accelerometer
   Read_Magn(); // Read magnetometer
+#endif // HW__VERSION_CODE
 }
 
 // Read every sensor and record a time stamp
@@ -483,14 +513,14 @@ void turn_output_stream_off()
 // Blocks until another byte is available on serial port
 char readChar()
 {
-  while (Serial.available() < 1) { } // Block
-  return Serial.read();
+  while (LOG_PORT.available() < 1) { } // Block
+  return LOG_PORT.read();
 }
 
 void setup()
 {
   // Init serial output
-  Serial.begin(OUTPUT__BAUD_RATE);
+  LOG_PORT.begin(OUTPUT__BAUD_RATE);
   
   // Init status LED
   pinMode (STATUS_LED_PIN, OUTPUT);
@@ -498,10 +528,16 @@ void setup()
 
   // Init sensors
   delay(50);  // Give sensors enough time to start
+#if HW__VERSION_CODE == 14001
+  // Set up MPU-9250 interrupt input (active-low)
+  pinMode(MPU9250_INT_PIN, INPUT_PULLUP);
+  initIMU();
+#else
   I2C_Init();
   Accel_Init();
   Magn_Init();
   Gyro_Init();
+#endif // HW__VERSION_CODE
   
   // Read sensors, init DCM algorithm
   delay(20);  // Give sensors enough time to collect data
@@ -519,11 +555,11 @@ void setup()
 void loop()
 {
   // Read incoming control messages
-  if (Serial.available() >= 2)
+  if (LOG_PORT.available() >= 2)
   {
-    if (Serial.read() == '#') // Start of new control message
+    if (LOG_PORT.read() == '#') // Start of new control message
     {
-      int command = Serial.read(); // Commands
+      int command = LOG_PORT.read(); // Commands
       if (command == 'f') // request one output _f_rame
         output_single_on = true;
       else if (command == 's') // _s_ynch request
@@ -534,9 +570,9 @@ void loop()
         id[1] = readChar();
         
         // Reply with synch message
-        Serial.print("#SYNCH");
-        Serial.write(id, 2);
-        Serial.println();
+        LOG_PORT.print("#SYNCH");
+        LOG_PORT.write(id, 2);
+        LOG_PORT.println();
       }
       else if (command == 'o') // Set _o_utput mode
       {
@@ -594,10 +630,10 @@ void loop()
           else if (error_param == '1') output_errors = true;
           else if (error_param == 'c') // get error count
           {
-            Serial.print("#AMG-ERR:");
-            Serial.print(num_accel_errors); Serial.print(",");
-            Serial.print(num_magn_errors); Serial.print(",");
-            Serial.println(num_gyro_errors);
+            LOG_PORT.print("#AMG-ERR:");
+            LOG_PORT.print(num_accel_errors); LOG_PORT.print(",");
+            LOG_PORT.print(num_magn_errors); LOG_PORT.print(",");
+            LOG_PORT.println(num_gyro_errors);
           }
         }
       }
@@ -653,14 +689,14 @@ void loop()
     output_single_on = false;
     
 #if DEBUG__PRINT_LOOP_TIME == true
-    Serial.print("loop time (ms) = ");
-    Serial.println(millis() - timestamp);
+    LOG_PORT.print("loop time (ms) = ");
+    LOG_PORT.println(millis() - timestamp);
 #endif
   }
 #if DEBUG__PRINT_LOOP_TIME == true
   else
   {
-    Serial.println("waiting...");
+    LOG_PORT.println("waiting...");
   }
 #endif
 }

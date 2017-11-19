@@ -1,5 +1,93 @@
 /* This file is part of the Razor AHRS Firmware */
 
+#if HW__VERSION_CODE == 14001
+#define DMP_SAMPLE_RATE    100 // Logging/DMP sample rate(4-200 Hz)
+#define IMU_COMPASS_SAMPLE_RATE 100 // Compass sample rate (4-100 Hz)
+#define IMU_AG_SAMPLE_RATE 100 // Accel/gyro sample rate Must be between 4Hz and 1kHz
+#define IMU_GYRO_FSR       2000 // Gyro full-scale range (250, 500, 1000, or 2000)
+#define IMU_ACCEL_FSR      16 // Accel full-scale range (2, 4, 8, or 16)
+#define IMU_AG_LPF         5 // Accel/Gyro LPF corner frequency (5, 10, 20, 42, 98, or 188 Hz)
+#define ENABLE_GYRO_CALIBRATION true
+
+unsigned short accelFSR = IMU_ACCEL_FSR;
+unsigned short gyroFSR = IMU_GYRO_FSR;
+unsigned short fifoRate = DMP_SAMPLE_RATE;
+
+bool initIMU(void)
+{
+	// imu.begin() should return 0 on success. Will initialize
+	// I2C bus, and reset MPU-9250 to defaults.
+	if (imu.begin() != INV_SUCCESS)
+		return false;
+
+	// Set up MPU-9250 interrupt:
+	imu.enableInterrupt(); // Enable interrupt output
+	imu.setIntLevel(1);    // Set interrupt to active-low
+	imu.setIntLatched(1);  // Latch interrupt output
+
+	// Configure sensors:
+	// Set gyro full-scale range: options are 250, 500, 1000, or 2000:
+	imu.setGyroFSR(gyroFSR);
+	// Set accel full-scale range: options are 2, 4, 8, or 16 g 
+	imu.setAccelFSR(accelFSR);
+	// Set gyro/accel LPF: options are5, 10, 20, 42, 98, 188 Hz
+	imu.setLPF(IMU_AG_LPF);
+	// Set gyro/accel sample rate: must be between 4-1000Hz
+	// (note: this value will be overridden by the DMP sample rate)
+	imu.setSampleRate(IMU_AG_SAMPLE_RATE);
+	// Set compass sample rate: between 4-100Hz
+	imu.setCompassSampleRate(IMU_COMPASS_SAMPLE_RATE);
+
+	// Configure digital motion processor. Use the FIFO to get
+	// data from the DMP.
+	unsigned short dmpFeatureMask = 0;
+	if (ENABLE_GYRO_CALIBRATION)
+	{
+		// Gyro calibration re-calibrates the gyro after a set amount
+		// of no motion detected
+		dmpFeatureMask |= DMP_FEATURE_GYRO_CAL; //added this line
+		dmpFeatureMask |= DMP_FEATURE_SEND_CAL_GYRO;
+	}
+	else
+	{
+		// Otherwise add raw gyro readings to the DMP
+		dmpFeatureMask |= DMP_FEATURE_SEND_RAW_GYRO;
+	}
+	// Add accel and quaternion's to the DMP
+	dmpFeatureMask |= DMP_FEATURE_SEND_RAW_ACCEL;
+	dmpFeatureMask |= DMP_FEATURE_6X_LP_QUAT;
+
+	// Initialize the DMP, and set the FIFO's update rate:
+	imu.dmpBegin(dmpFeatureMask, fifoRate);
+
+	return true; // Return success
+}
+
+void loop_imu()
+{
+	// Then check IMU for new data, and log it
+	if (!imu.fifoAvailable()) // If no new data is available
+		return;                   // return to the top of the loop
+
+	  // Read from the digital motion processor's FIFO
+	if (imu.dmpUpdateFifo() != INV_SUCCESS)
+		return; // If that fails (uh, oh), return to top
+
+	  // If enabled, read from the compass.
+	if (imu.updateCompass() != INV_SUCCESS)
+		return; // If compass read fails (uh, oh) return to top
+
+	accel[0] = -250.0f*imu.calcAccel(imu.ax);
+	accel[1] = 250.0f*imu.calcAccel(imu.ay);
+	accel[2] = 250.0f*imu.calcAccel(imu.az);
+	gyro[0] = imu.calcGyro(imu.gx)*PI/180.0f;
+	gyro[1] = -imu.calcGyro(imu.gy)*PI/180.0f;
+	gyro[2] = -imu.calcGyro(imu.gz)*PI/180.0f;
+	magnetom[0] = (10.0f*imu.calcMag(imu.my));
+	magnetom[1] = (-10.0f*imu.calcMag(imu.mx));
+	magnetom[2] = (10.0f*imu.calcMag(imu.mz));
+}
+#else
 // I2C code to read the sensors
 
 // Sensor I2C addresses
@@ -208,3 +296,4 @@ void Read_Gyro()
     if (output_errors) Serial.println("!ERR: reading gyroscope");
   }
 }
+#endif // HW__VERSION_CODE

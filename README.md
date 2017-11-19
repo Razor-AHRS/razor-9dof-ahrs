@@ -1,7 +1,7 @@
-Razor AHRS v1.4.2
+Razor AHRS
 ---
 
-**9 Degree of Measurement Attitude and Heading Reference System** for Sparkfun *9DOF Razor IMU* (SEN-10125 and SEN-10736) and SparkFun *9DOF Sensor Stick* (SEN-10183, SEN-10321 and SEN-10724)
+**9 Degree of Measurement Attitude and Heading Reference System** for Sparkfun *9DOF Razor IMU* (SEN-10125, SEN-10736 and SEN-14001) and SparkFun *9DOF Sensor Stick* (SEN-10183, SEN-10321 and SEN-10724)
 
 Infos, updates, bug reports, contributions and feedback: https://github.com/ptrbrtz/razor-9dof-ahrs
 
@@ -14,6 +14,7 @@ Tutorial
 ---
 
 You find a [detailed tutorial in the Wiki](https://github.com/ptrbrtz/razor-9dof-ahrs/wiki/Tutorial).
+Note: for SEN-14001 (*9DoF Razor IMU M0*), you will need to follow before https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide to install the necessary prerequisites, as well as an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library (an updated version of the default firmware is also available from https://github.com/lebarsfa/9DOF_Razor_IMU).
 
 Quick setup
 ---
