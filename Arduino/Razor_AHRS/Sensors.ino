@@ -65,17 +65,33 @@ bool initIMU(void)
 
 void loop_imu()
 {
-	// Then check IMU for new data, and log it
-	if (!imu.fifoAvailable()) // If no new data is available
-		return;                   // return to the top of the loop
+	// Check IMU for new data, and log it.
+	if (!imu.fifoAvailable())
+	{
+		num_accel_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading accelerometer");
+		num_gyro_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading gyroscope");
+		return;
+	}
 
-	  // Read from the digital motion processor's FIFO
+	// Read from the digital motion processor's FIFO.
 	if (imu.dmpUpdateFifo() != INV_SUCCESS)
-		return; // If that fails (uh, oh), return to top
+	{
+		num_accel_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading accelerometer");
+		num_gyro_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading gyroscope");
+		return;
+	}
 
-	  // If enabled, read from the compass.
+	// Read from the compass.
 	if (imu.updateCompass() != INV_SUCCESS)
-		return; // If compass read fails (uh, oh) return to top
+	{
+		num_magn_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading magnetometer");
+		return;
+	}
 
 	// Conversion from g to similar unit as older versions of Razor...
 	accel[0] = -250.0f*imu.calcAccel(imu.ax);
