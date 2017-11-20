@@ -77,12 +77,15 @@ void loop_imu()
 	if (imu.updateCompass() != INV_SUCCESS)
 		return; // If compass read fails (uh, oh) return to top
 
+	// Conversion from g to similar unit as older versions of Razor...
 	accel[0] = -250.0f*imu.calcAccel(imu.ax);
 	accel[1] = 250.0f*imu.calcAccel(imu.ay);
 	accel[2] = 250.0f*imu.calcAccel(imu.az);
+	// Conversion from degrees/s to rad/s.
 	gyro[0] = imu.calcGyro(imu.gx)*PI/180.0f;
 	gyro[1] = -imu.calcGyro(imu.gy)*PI/180.0f;
 	gyro[2] = -imu.calcGyro(imu.gz)*PI/180.0f;
+	// Conversion from uT to mGauss.
 	magnetom[0] = (10.0f*imu.calcMag(imu.my));
 	magnetom[1] = (-10.0f*imu.calcMag(imu.mx));
 	magnetom[2] = (10.0f*imu.calcMag(imu.mz));
