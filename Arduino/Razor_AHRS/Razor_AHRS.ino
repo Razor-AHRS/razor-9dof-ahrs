@@ -41,11 +41,13 @@
 *       * Added support for SparkFun "9DOF Sensor Stick" (versions SEN-10183, SEN-10321 and SEN-10724).
 *     * v1.4.1
 *       * Added output modes to read raw and/or calibrated sensor data in text or binary format.
-*       * Added static magnetometer soft iron distortion compensation
+*       * Added static magnetometer soft iron distortion compensation.
 *     * v1.4.2
 *       * (No core firmware changes)
 *     * v1.5
 *       * Added support for "9DoF Razor IMU M0": SEN-14001.
+*     * v1.5.1
+*       * Added ROS-compatible output mode.
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
@@ -110,7 +112,13 @@
               is 3x4 = 12 bytes long).
       "#ot" - Output angles in TEXT format (Output frames have form like "#YPR=-142.28,-5.38,33.52",
               followed by carriage return and line feed [\r\n]).
-      
+      "#ox" - Output angles and linear acceleration and rotational
+              velocity. Angles are in degrees, acceleration is
+              in units of 1.0 = 1/256 G (9.8/256 m/s^2). Rotational
+              velocity is in rad/s^2. (Output frames have form like
+              "#YPRAG=-142.28,-5.38,33.52,0.1,0.1,1.0,0.01,0.01,0.01",
+              followed by carriage return and line feed [\r\n]).
+     
       // Sensor calibration
       "#oc" - Go to CALIBRATION output mode.
       "#on" - When in calibration mode, go on to calibrate NEXT sensor.
@@ -199,6 +207,7 @@
 #define OUTPUT__MODE_SENSORS_CALIB 2 // Outputs calibrated sensor values for all 9 axes
 #define OUTPUT__MODE_SENSORS_RAW 3 // Outputs raw (uncalibrated) sensor values for all 9 axes
 #define OUTPUT__MODE_SENSORS_BOTH 4 // Outputs calibrated AND raw sensor values for all 9 axes
+#define OUTPUT__MODE_ANGLES_AG_SENSORS 5 // Outputs yaw/pitch/roll in degrees + linear accel + rot. vel
 // Output format definitions (do not change)
 #define OUTPUT__FORMAT_TEXT 0 // Outputs data as text
 #define OUTPUT__FORMAT_BINARY 1 // Outputs data as binary float
@@ -608,6 +617,11 @@ void loop()
           output_mode = OUTPUT__MODE_CALIBRATE_SENSORS;
           reset_calibration_session_flag = true;
         }
+        else if (output_param == 'x') // Output angles + accel + rot. vel as te_x_t
+        {
+          output_mode = OUTPUT__MODE_ANGLES_AG_SENSORS;
+          output_format = OUTPUT__FORMAT_TEXT;
+        }
         else if (output_param == 's') // Output _s_ensor values
         {
           char values_param = readChar();
@@ -691,6 +705,20 @@ void loop()
       Euler_angles();
       
       if (output_stream_on || output_single_on) output_angles();
+    }
+    else if (output_mode == OUTPUT__MODE_ANGLES_AG_SENSORS)  // Output angles + accel + rot. vel
+    {
+      // Apply sensor calibration
+      compensate_sensor_errors();
+    
+      // Run DCM algorithm
+      Compass_Heading(); // Calculate magnetic heading
+      Matrix_update();
+      Normalize();
+      Drift_correction();
+      Euler_angles();
+      
+      if (output_stream_on || output_single_on) output_both_angles_and_sensors_text();
     }
     else  // Output sensor values
     {      

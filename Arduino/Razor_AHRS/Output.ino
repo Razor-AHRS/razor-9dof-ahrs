@@ -87,6 +87,22 @@ void output_sensors_text(char raw_or_calibrated)
   LOG_PORT.print(gyro[2]); LOG_PORT.println();
 }
 
+void output_both_angles_and_sensors_text()
+{
+  LOG_PORT.print("#YPRAG=");
+  LOG_PORT.print(TO_DEG(yaw)); LOG_PORT.print(",");
+  LOG_PORT.print(TO_DEG(pitch)); LOG_PORT.print(",");
+  LOG_PORT.print(TO_DEG(roll)); LOG_PORT.print(",");
+  
+  LOG_PORT.print(Accel_Vector[0]); LOG_PORT.print(",");
+  LOG_PORT.print(Accel_Vector[1]); LOG_PORT.print(",");
+  LOG_PORT.print(Accel_Vector[2]); LOG_PORT.print(",");
+
+  LOG_PORT.print(Gyro_Vector[0]); LOG_PORT.print(",");
+  LOG_PORT.print(Gyro_Vector[1]); LOG_PORT.print(",");
+  LOG_PORT.print(Gyro_Vector[2]); LOG_PORT.println();
+}
+
 void output_sensors_binary()
 {
   LOG_PORT.write((byte*) accel, 12);
