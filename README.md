@@ -1,4 +1,4 @@
-Razor AHRS v1.5.2
+Razor AHRS
 ---
 
 **9 Degree of Measurement Attitude and Heading Reference System** for Sparkfun *9DOF Razor IMU* (SEN-10125, SEN-10736 and SEN-14001) and SparkFun *9DOF Sensor Stick* (SEN-10183, SEN-10321 and SEN-10724)
