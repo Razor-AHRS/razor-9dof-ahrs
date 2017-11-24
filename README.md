@@ -1,4 +1,4 @@
-Razor AHRS v1.5
+Razor AHRS v1.5.1
 ---
 
 **9 Degree of Measurement Attitude and Heading Reference System** for Sparkfun *9DOF Razor IMU* (SEN-10125, SEN-10736 and SEN-14001) and SparkFun *9DOF Sensor Stick* (SEN-10183, SEN-10321 and SEN-10724)
@@ -54,6 +54,10 @@ Building your own app:
         
 * If you want to use the DeclinationHelper class you also need:  
 `android.permission.ACCESS_FINE_LOCATION` and `android.permission.ACCESS_COARSE_LOCATION`
+
+### Optional: ROS Interface
+
+See http://wiki.ros.org/razor_imu_9dof.
 
 Donation
 ---
