@@ -180,7 +180,7 @@ void Read_Accel()
   else
   {
     num_accel_errors++;
-    if (output_errors) Serial.println("!ERR: reading accelerometer");
+    if (output_errors) LOG_PORT.println("!ERR: reading accelerometer");
   }
 }
 
@@ -248,7 +248,7 @@ void Read_Magn()
   else
   {
     num_magn_errors++;
-    if (output_errors) Serial.println("!ERR: reading magnetometer");
+    if (output_errors) LOG_PORT.println("!ERR: reading magnetometer");
   }
 }
 
@@ -312,7 +312,7 @@ void Read_Gyro()
   else
   {
     num_gyro_errors++;
-    if (output_errors) Serial.println("!ERR: reading gyroscope");
+    if (output_errors) LOG_PORT.println("!ERR: reading gyroscope");
   }
 }
 #endif // HW__VERSION_CODE
