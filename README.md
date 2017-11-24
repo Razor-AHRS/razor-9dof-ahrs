@@ -8,7 +8,7 @@ Infos, updates, bug reports, contributions and feedback: https://github.com/ptrb
 Download
 ---
 
-Clone the [repository on GitHub](https://github.com/lebarsfa/razor-9dof-ahrs) or [download as .zip](https://github.com/lebarsfa/razor-9dof-ahrs/releases).
+Clone the [repository on GitHub](https://github.com/lebarsfa/razor-9dof-ahrs) or [download a specific release](https://github.com/lebarsfa/razor-9dof-ahrs/releases).
 
 Tutorial
 ---
