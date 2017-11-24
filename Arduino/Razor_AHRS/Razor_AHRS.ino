@@ -1,5 +1,5 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.5.1
+* Razor AHRS Firmware v1.5.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
 * and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
@@ -48,6 +48,8 @@
 *       * Added support for "9DoF Razor IMU M0": SEN-14001.
 *     * v1.5.1
 *       * Added ROS-compatible output mode.
+*     * v1.5.2
+*       * Added ROS-compatible input mode to set calibration parameters.
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
@@ -100,6 +102,13 @@
 
 /*
   Serial commands that the firmware understands:
+  
+  "#c<params>" - SET _c_alibration parameters. The available options are:
+    [a|m|g|c|t] _a_ccelerometer, _m_agnetometer, _g_yro, magnetometerellipsoid_c_enter, magnetometerellipsoid_t_ransform.
+    [x|y|z] x,y or z.
+    [m|M|X|Y|Z] _m_in or _M_ax (accel or magnetometer), X, Y, or Z of transform (magnetometerellipsoid_t_ransform).
+
+  "#p" - PRINT current calibration values.
   
   "#o<params>" - Set OUTPUT mode and parameters. The available options are:
   
@@ -242,67 +251,67 @@ boolean output_errors = false;  // true or false
 // For the M0, only the extended magnetometer calibration seems to be really necessary...
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-#define ACCEL_X_MIN ((float) -250)
-#define ACCEL_X_MAX ((float) 250)
-#define ACCEL_Y_MIN ((float) -250)
-#define ACCEL_Y_MAX ((float) 250)
-#define ACCEL_Z_MIN ((float) -250)
-#define ACCEL_Z_MAX ((float) 250)
+float ACCEL_X_MIN = -250;
+float ACCEL_X_MAX = 250;
+float ACCEL_Y_MIN = -250;
+float ACCEL_Y_MAX = 250;
+float ACCEL_Z_MIN = -250;
+float ACCEL_Z_MAX = 250;
 
 // Magnetometer (standard calibration mode)
 // "magn x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-#define MAGN_X_MIN ((float) -600)
-#define MAGN_X_MAX ((float) 600)
-#define MAGN_Y_MIN ((float) -600)
-#define MAGN_Y_MAX ((float) 600)
-#define MAGN_Z_MIN ((float) -600)
-#define MAGN_Z_MAX ((float) 600)
+float MAGN_X_MIN = -600;
+float MAGN_X_MAX = 600;
+float MAGN_Y_MIN = -600;
+float MAGN_Y_MAX = 600;
+float MAGN_Z_MIN = -600;
+float MAGN_Z_MAX = 600;
 
 // Magnetometer (extended calibration mode)
-// Uncommend to use extended magnetometer calibration (compensates hard & soft iron errors)
-//#define CALIBRATION__MAGN_USE_EXTENDED true
-//const float magn_ellipsoid_center[3] = {0, 0, 0};
-//const float magn_ellipsoid_transform[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+// Set to true to use extended magnetometer calibration (compensates hard & soft iron errors)
+boolean CALIBRATION__MAGN_USE_EXTENDED = false;
+float magn_ellipsoid_center[3] = {0, 0, 0};
+float magn_ellipsoid_transform[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 
 // Gyroscope
 // "gyro x,y,z (current/average) = .../OFFSET_X  .../OFFSET_Y  .../OFFSET_Z
-#define GYRO_AVERAGE_OFFSET_X ((float) 0.0)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 0.0)
-#define GYRO_AVERAGE_OFFSET_Z ((float) 0.0)
+float GYRO_AVERAGE_OFFSET_X = 0.0;
+float GYRO_AVERAGE_OFFSET_Y = 0.0;
+float GYRO_AVERAGE_OFFSET_Z = 0.0;
 
 /*
 // Calibration example:
 
 // "accel x,y,z (min/max) = -277.00/264.00  -256.00/278.00  -299.00/235.00"
-#define ACCEL_X_MIN ((float) -277)
-#define ACCEL_X_MAX ((float) 264)
-#define ACCEL_Y_MIN ((float) -256)
-#define ACCEL_Y_MAX ((float) 278)
-#define ACCEL_Z_MIN ((float) -299)
-#define ACCEL_Z_MAX ((float) 235)
+float ACCEL_X_MIN = -277;
+float ACCEL_X_MAX = 264;
+float ACCEL_Y_MIN = -256;
+float ACCEL_Y_MAX = 278;
+float ACCEL_Z_MIN = -299;
+float ACCEL_Z_MAX = 235;
 
 // "magn x,y,z (min/max) = -511.00/581.00  -516.00/568.00  -489.00/486.00"
-//#define MAGN_X_MIN ((float) -511)
-//#define MAGN_X_MAX ((float) 581)
-//#define MAGN_Y_MIN ((float) -516)
-//#define MAGN_Y_MAX ((float) 568)
-//#define MAGN_Z_MIN ((float) -489)
-//#define MAGN_Z_MAX ((float) 486)
+float MAGN_X_MIN = -511;
+float MAGN_X_MAX = 581;
+float MAGN_Y_MIN = -516;
+float MAGN_Y_MAX = 568;
+float MAGN_Z_MIN = -489;
+float MAGN_Z_MAX = 486;
 
 // Extended magn
-#define CALIBRATION__MAGN_USE_EXTENDED true
-const float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
-const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
+boolean CALIBRATION__MAGN_USE_EXTENDED = true;
+float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
+float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
 
 // Extended magn (with Sennheiser HD 485 headphones)
-//#define CALIBRATION__MAGN_USE_EXTENDED true
-//const float magn_ellipsoid_center[3] = {72.3360, 23.0954, 53.6261};
-//const float magn_ellipsoid_transform[3][3] = {{0.879685, 0.000540833, -0.0106054}, {0.000540833, 0.891086, -0.0130338}, {-0.0106054, -0.0130338, 0.997494}};
+//boolean CALIBRATION__MAGN_USE_EXTENDED = true;
+//float magn_ellipsoid_center[3] = {72.3360, 23.0954, 53.6261};
+//float magn_ellipsoid_transform[3][3] = {{0.879685, 0.000540833, -0.0106054}, {0.000540833, 0.891086, -0.0130338}, {-0.0106054, -0.0130338, 0.997494}};
 
 //"gyro x,y,z (current/average) = -40.00/-42.05  98.00/96.20  -18.00/-18.36"
-#define GYRO_AVERAGE_OFFSET_X ((float) -42.05)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 96.20)
-#define GYRO_AVERAGE_OFFSET_Z ((float) -18.36)
+float GYRO_AVERAGE_OFFSET_X = -42.05;
+float GYRO_AVERAGE_OFFSET_Y = 96.20;
+float GYRO_AVERAGE_OFFSET_Z = -18.36;
 */
 
 
@@ -347,20 +356,22 @@ MPU9250_DMP imu; // Create an instance of the MPU9250_DMP class
 #include <Wire.h>
 #endif // HW__VERSION_CODE
 
-// Sensor calibration scale and offset values
-#define ACCEL_X_OFFSET ((ACCEL_X_MIN + ACCEL_X_MAX) / 2.0f)
-#define ACCEL_Y_OFFSET ((ACCEL_Y_MIN + ACCEL_Y_MAX) / 2.0f)
-#define ACCEL_Z_OFFSET ((ACCEL_Z_MIN + ACCEL_Z_MAX) / 2.0f)
-#define ACCEL_X_SCALE (GRAVITY / (ACCEL_X_MAX - ACCEL_X_OFFSET))
-#define ACCEL_Y_SCALE (GRAVITY / (ACCEL_Y_MAX - ACCEL_Y_OFFSET))
-#define ACCEL_Z_SCALE (GRAVITY / (ACCEL_Z_MAX - ACCEL_Z_OFFSET))
+#define GRAVITY 256.0f // "1G reference" used for DCM filter and accelerometer calibration
 
-#define MAGN_X_OFFSET ((MAGN_X_MIN + MAGN_X_MAX) / 2.0f)
-#define MAGN_Y_OFFSET ((MAGN_Y_MIN + MAGN_Y_MAX) / 2.0f)
-#define MAGN_Z_OFFSET ((MAGN_Z_MIN + MAGN_Z_MAX) / 2.0f)
-#define MAGN_X_SCALE (100.0f / (MAGN_X_MAX - MAGN_X_OFFSET))
-#define MAGN_Y_SCALE (100.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET))
-#define MAGN_Z_SCALE (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
+// Sensor calibration scale and offset values
+float ACCEL_X_OFFSET = ((ACCEL_X_MIN + ACCEL_X_MAX) / 2.0f);
+float ACCEL_Y_OFFSET = ((ACCEL_Y_MIN + ACCEL_Y_MAX) / 2.0f);
+float ACCEL_Z_OFFSET = ((ACCEL_Z_MIN + ACCEL_Z_MAX) / 2.0f);
+float ACCEL_X_SCALE = (GRAVITY / (ACCEL_X_MAX - ACCEL_X_OFFSET));
+float ACCEL_Y_SCALE = (GRAVITY / (ACCEL_Y_MAX - ACCEL_Y_OFFSET));
+float ACCEL_Z_SCALE = (GRAVITY / (ACCEL_Z_MAX - ACCEL_Z_OFFSET));
+
+float MAGN_X_OFFSET = ((MAGN_X_MIN + MAGN_X_MAX) / 2.0f);
+float MAGN_Y_OFFSET = ((MAGN_Y_MIN + MAGN_Y_MAX) / 2.0f);
+float MAGN_Z_OFFSET = ((MAGN_Z_MIN + MAGN_Z_MAX) / 2.0f);
+float MAGN_X_SCALE = (100.0f / (MAGN_X_MAX - MAGN_X_OFFSET));
+float MAGN_Y_SCALE = (100.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET));
+float MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
 
 
 
@@ -380,7 +391,6 @@ MPU9250_DMP imu; // Create an instance of the MPU9250_DMP class
 
 // Stuff
 #define STATUS_LED_PIN 13  // Pin number of status LED
-#define GRAVITY 256.0f // "1G reference" used for DCM filter and accelerometer calibration
 #define TO_RAD(x) (x * 0.01745329252)  // *pi/180
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
@@ -441,6 +451,26 @@ void read_sensors() {
 #endif // HW__VERSION_CODE
 }
 
+// Should be called after every #ca calibration command
+void recalculateAccelCalibration() {
+  ACCEL_X_OFFSET = ((ACCEL_X_MIN + ACCEL_X_MAX) / 2.0f);
+  ACCEL_Y_OFFSET = ((ACCEL_Y_MIN + ACCEL_Y_MAX) / 2.0f);
+  ACCEL_Z_OFFSET = ((ACCEL_Z_MIN + ACCEL_Z_MAX) / 2.0f);
+  ACCEL_X_SCALE = (GRAVITY / (ACCEL_X_MAX - ACCEL_X_OFFSET));
+  ACCEL_Y_SCALE = (GRAVITY / (ACCEL_Y_MAX - ACCEL_Y_OFFSET));
+  ACCEL_Z_SCALE = (GRAVITY / (ACCEL_Z_MAX - ACCEL_Z_OFFSET));
+}
+
+// Should be called after every #cm calibration command
+void recalculateMagnCalibration() {
+  MAGN_X_OFFSET = ((MAGN_X_MIN + MAGN_X_MAX) / 2.0f);
+  MAGN_Y_OFFSET = ((MAGN_Y_MIN + MAGN_Y_MAX) / 2.0f);
+  MAGN_Z_OFFSET = ((MAGN_Z_MIN + MAGN_Z_MAX) / 2.0f);
+  MAGN_X_SCALE = (100.0f / (MAGN_X_MAX - MAGN_X_OFFSET));
+  MAGN_Y_SCALE = (100.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET));
+  MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
+}
+
 // Read every sensor and record a time stamp
 // Init DCM with unfiltered orientation
 // TODO re-init global vars?
@@ -481,15 +511,18 @@ void compensate_sensor_errors() {
     accel[2] = (accel[2] - ACCEL_Z_OFFSET) * ACCEL_Z_SCALE;
 
     // Compensate magnetometer error
-#if CALIBRATION__MAGN_USE_EXTENDED == true
-    for (int i = 0; i < 3; i++)
-      magnetom_tmp[i] = magnetom[i] - magn_ellipsoid_center[i];
-    Matrix_Vector_Multiply(magn_ellipsoid_transform, magnetom_tmp, magnetom);
-#else
-    magnetom[0] = (magnetom[0] - MAGN_X_OFFSET) * MAGN_X_SCALE;
-    magnetom[1] = (magnetom[1] - MAGN_Y_OFFSET) * MAGN_Y_SCALE;
-    magnetom[2] = (magnetom[2] - MAGN_Z_OFFSET) * MAGN_Z_SCALE;
-#endif
+    if (CALIBRATION__MAGN_USE_EXTENDED)
+    {
+      for (int i = 0; i < 3; i++)
+        magnetom_tmp[i] = magnetom[i] - magn_ellipsoid_center[i];
+      Matrix_Vector_Multiply(magn_ellipsoid_transform, magnetom_tmp, magnetom);
+    } 
+    else 
+    {
+      magnetom[0] = (magnetom[0] - MAGN_X_OFFSET) * MAGN_X_SCALE;
+      magnetom[1] = (magnetom[1] - MAGN_Y_OFFSET) * MAGN_Y_SCALE;
+      magnetom[2] = (magnetom[2] - MAGN_Z_OFFSET) * MAGN_Z_SCALE;
+    }
 
     // Compensate gyroscope error
     gyro[0] -= GYRO_AVERAGE_OFFSET_X;
@@ -660,6 +693,167 @@ void loop()
             LOG_PORT.print(num_magn_errors); LOG_PORT.print(",");
             LOG_PORT.println(num_gyro_errors);
           }
+        }
+      }
+      else if (command == 'p') // Set _p_rint calibration values
+      {
+         LOG_PORT.print("ACCEL_X_MIN:");LOG_PORT.println(ACCEL_X_MIN);
+         LOG_PORT.print("ACCEL_X_MAX:");LOG_PORT.println(ACCEL_X_MAX);
+         LOG_PORT.print("ACCEL_Y_MIN:");LOG_PORT.println(ACCEL_Y_MIN);
+         LOG_PORT.print("ACCEL_Y_MAX:");LOG_PORT.println(ACCEL_Y_MAX);
+         LOG_PORT.print("ACCEL_Z_MIN:");LOG_PORT.println(ACCEL_Z_MIN);
+         LOG_PORT.print("ACCEL_Z_MAX:");LOG_PORT.println(ACCEL_Z_MAX);
+         LOG_PORT.println(""); 
+         LOG_PORT.print("MAGN_X_MIN:");LOG_PORT.println(MAGN_X_MIN);
+         LOG_PORT.print("MAGN_X_MAX:");LOG_PORT.println(MAGN_X_MAX);
+         LOG_PORT.print("MAGN_Y_MIN:");LOG_PORT.println(MAGN_Y_MIN);
+         LOG_PORT.print("MAGN_Y_MAX:");LOG_PORT.println(MAGN_Y_MAX);
+         LOG_PORT.print("MAGN_Z_MIN:");LOG_PORT.println(MAGN_Z_MIN);
+         LOG_PORT.print("MAGN_Z_MAX:");LOG_PORT.println(MAGN_Z_MAX);
+         LOG_PORT.println("");
+         LOG_PORT.print("MAGN_USE_EXTENDED:");
+         if (CALIBRATION__MAGN_USE_EXTENDED) 
+           LOG_PORT.println("true");
+         else
+           LOG_PORT.println("false");
+         LOG_PORT.print("magn_ellipsoid_center:[");LOG_PORT.print(magn_ellipsoid_center[0],4);LOG_PORT.print(",");
+         LOG_PORT.print(magn_ellipsoid_center[1],4);LOG_PORT.print(",");
+         LOG_PORT.print(magn_ellipsoid_center[2],4);LOG_PORT.println("]");
+         LOG_PORT.print("magn_ellipsoid_transform:[");
+         for(int i = 0; i < 3; i++){
+           LOG_PORT.print("[");
+           for(int j = 0; j < 3; j++){
+             LOG_PORT.print(magn_ellipsoid_transform[i][j],7);
+             if (j < 2) LOG_PORT.print(",");
+           }
+           LOG_PORT.print("]");
+           if (i < 2) LOG_PORT.print(",");
+         }
+         LOG_PORT.println("]");
+         LOG_PORT.println(""); 
+         LOG_PORT.print("GYRO_AVERAGE_OFFSET_X:");LOG_PORT.println(GYRO_AVERAGE_OFFSET_X);
+         LOG_PORT.print("GYRO_AVERAGE_OFFSET_Y:");LOG_PORT.println(GYRO_AVERAGE_OFFSET_Y);
+         LOG_PORT.print("GYRO_AVERAGE_OFFSET_Z:");LOG_PORT.println(GYRO_AVERAGE_OFFSET_Z);
+      }
+      else if (command == 'c') // Set _i_nput mode
+      {
+        char input_param = readChar();
+        if (input_param == 'a')  // Calibrate _a_ccelerometer
+        {
+          char axis_param = readChar();
+          char type_param = readChar();
+          float value_param = LOG_PORT.parseFloat();
+          if (axis_param == 'x')  // x value
+          {
+            if (type_param == 'm')
+              ACCEL_X_MIN = value_param;
+            else if (type_param == 'M')
+              ACCEL_X_MAX = value_param;
+          }
+          else if (axis_param == 'y')  // y value
+          {
+            if (type_param == 'm')
+              ACCEL_Y_MIN = value_param;
+            else if (type_param == 'M')
+              ACCEL_Y_MAX = value_param;
+          }
+          else if (axis_param == 'z')  // z value
+          {
+            if (type_param == 'm')
+              ACCEL_Z_MIN = value_param;
+            else if (type_param == 'M')
+              ACCEL_Z_MAX = value_param;
+          }
+          recalculateAccelCalibration();
+        }
+        else if (input_param == 'm')  // Calibrate _m_agnetometer (basic)
+        {
+          //disable extended magnetometer calibration
+          CALIBRATION__MAGN_USE_EXTENDED = false;
+          char axis_param = readChar();
+          char type_param = readChar();
+          float value_param = LOG_PORT.parseFloat();
+          if (axis_param == 'x')  // x value
+          {
+            if (type_param == 'm')
+              MAGN_X_MIN = value_param;
+            else if (type_param == 'M')
+              MAGN_X_MAX = value_param;
+          }
+          else if (axis_param == 'y')  // y value
+          {
+            if (type_param == 'm')
+              MAGN_Y_MIN = value_param;
+            else if (type_param == 'M')
+              MAGN_Y_MAX = value_param;
+          }
+          else if (axis_param == 'z')  // z value
+          {
+            if (type_param == 'm')
+              MAGN_Z_MIN = value_param;
+            else if (type_param == 'M')
+              MAGN_Z_MAX = value_param;
+          }
+          recalculateMagnCalibration();
+        }
+        else if (input_param == 'c')  // Calibrate magnetometerellipsoid_c_enter (extended)
+        {
+          //enable extended magnetometer calibration
+          CALIBRATION__MAGN_USE_EXTENDED = true;
+          char axis_param = readChar();
+          float value_param = LOG_PORT.parseFloat();
+          if (axis_param == 'x')  // x value
+              magn_ellipsoid_center[0] = value_param;
+          else if (axis_param == 'y')  // y value
+              magn_ellipsoid_center[1] = value_param;
+          else if (axis_param == 'z')  // z value
+              magn_ellipsoid_center[2] = value_param;
+        }
+        else if (input_param == 't')  // Calibrate magnetometerellipsoid_t_ransform (extended)
+        {
+          //enable extended magnetometer calibration
+          CALIBRATION__MAGN_USE_EXTENDED = true;
+          char axis_param = readChar();
+          char type_param = readChar();
+          float value_param = LOG_PORT.parseFloat();
+          if (axis_param == 'x')  // x value
+          {
+            if (type_param == 'X')
+              magn_ellipsoid_transform[0][0] = value_param;
+            else if (type_param == 'Y')
+              magn_ellipsoid_transform[0][1] = value_param;
+            else if (type_param == 'Z')
+              magn_ellipsoid_transform[0][2] = value_param;
+          }
+          else if (axis_param == 'y')  // y value
+          {
+            if (type_param == 'X')
+              magn_ellipsoid_transform[1][0] = value_param;
+            else if (type_param == 'Y')
+              magn_ellipsoid_transform[1][1] = value_param;
+            else if (type_param == 'Z')
+              magn_ellipsoid_transform[1][2] = value_param;
+          }
+          else if (axis_param == 'z')  // z value
+          {
+            if (type_param == 'X')
+              magn_ellipsoid_transform[2][0] = value_param;
+            else if (type_param == 'Y')
+              magn_ellipsoid_transform[2][1] = value_param;
+            else if (type_param == 'Z')
+              magn_ellipsoid_transform[2][2] = value_param;
+          }
+        }
+        else if (input_param == 'g')  // Calibrate _g_yro 
+        {
+          char axis_param = readChar();
+          float value_param = LOG_PORT.parseFloat();
+          if (axis_param == 'x')  // x value
+              GYRO_AVERAGE_OFFSET_X = value_param;
+          else if (axis_param == 'y')  // y value
+              GYRO_AVERAGE_OFFSET_Y = value_param;
+          else if (axis_param == 'z')  // z value
+              GYRO_AVERAGE_OFFSET_Z = value_param;
         }
       }
 #if OUTPUT__HAS_RN_BLUETOOTH == true
