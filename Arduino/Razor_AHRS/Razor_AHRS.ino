@@ -54,7 +54,7 @@
 *       * Fixed the problem where commands were ignored by the M0 depending on how they were sent.
 *
 * TODOs:
-*   * Allow optional use of EEPROM for storing and reading calibration values.
+*   * Allow optional use of Flash/EEPROM for storing and reading calibration values.
 *   * Use self-test and temperature-compensation features of the sensors.
 ***************************************************************************************************************/
 
@@ -411,7 +411,7 @@ float gyro_average[3];
 int gyro_num_samples = 0;
 
 // DCM variables
-float MAG_Heading;
+float MAG_Heading = 0;
 float Accel_Vector[3]= {0, 0, 0}; // Store the acceleration in a vector
 float Gyro_Vector[3]= {0, 0, 0}; // Store the gyros turn rate in a vector
 float Omega_Vector[3]= {0, 0, 0}; // Corrected Gyro_Vector data
@@ -425,18 +425,18 @@ float Update_Matrix[3][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
 float Temporary_Matrix[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 
 // Euler angles
-float yaw;
-float pitch;
-float roll;
+float yaw = 0;
+float pitch = 0;
+float roll = 0;
 
 // DCM timing in the main loop
-unsigned long timestamp;
-unsigned long timestamp_old;
-float G_Dt; // Integration time for DCM algorithm
+unsigned long timestamp = 0;
+unsigned long timestamp_old = 0;
+float G_Dt = 0; // Integration time for DCM algorithm
 
 // More output-state variables
-boolean output_stream_on;
-boolean output_single_on;
+boolean output_stream_on = false;
+boolean output_single_on = false;
 int curr_calibration_sensor = 0;
 boolean reset_calibration_session_flag = true;
 int num_accel_errors = 0;
