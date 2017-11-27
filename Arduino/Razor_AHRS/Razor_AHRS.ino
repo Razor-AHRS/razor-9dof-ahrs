@@ -1,5 +1,5 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.5.2
+* Razor AHRS Firmware
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
 * and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
@@ -50,6 +50,8 @@
 *       * Added ROS-compatible output mode.
 *     * v1.5.2
 *       * Added ROS-compatible input mode to set calibration parameters.
+*     * v1.5.3
+*       * Fixed the problem where commands were ignored by the M0 depending on how they were sent.
 *
 * TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
@@ -608,11 +610,21 @@ void setup()
 void loop()
 {
   // Read incoming control messages
+ #if HW__VERSION_CODE == 14001
+  // Compatibility fix : if bytes are sent 1 by 1 without being read, available() might never return more than 1...
+  // Therefore, we need to read bytes 1 by 1 and the command byte needs to be a blocking read...
+  if (LOG_PORT.available() >= 1)
+  {
+    if (LOG_PORT.read() == '#') // Start of new control message
+    {
+      int command = readChar(); // Commands
+#else
   if (LOG_PORT.available() >= 2)
   {
     if (LOG_PORT.read() == '#') // Start of new control message
     {
       int command = LOG_PORT.read(); // Commands
+#endif // HW__VERSION_CODE
       if (command == 'f') // request one output _f_rame
         output_single_on = true;
       else if (command == 's') // _s_ynch request
