@@ -52,6 +52,10 @@
 *       * Added ROS-compatible input mode to set calibration parameters.
 *     * v1.5.3
 *       * Fixed the problem where commands were ignored by the M0 depending on how they were sent.
+*     * v1.5.4
+*       * Attempts to fix random nan problems in orientation computations.
+*       * Added an option to get yaw/pitch/roll from the M0 DMP.
+*       * Added a command to enable/disable the use of magnetometers for yaw computation.
 *
 * TODOs:
 *   * Allow optional use of Flash/EEPROM for storing and reading calibration values.
@@ -110,8 +114,10 @@
     [x|y|z] x,y or z.
     [m|M|X|Y|Z] _m_in or _M_ax (accel or magnetometer), X, Y, or Z of transform (magnetometerellipsoid_t_ransform).
 
+
   "#p" - PRINT current calibration values.
-  
+
+
   "#o<params>" - Set OUTPUT mode and parameters. The available options are:
   
       // Streaming output
@@ -153,20 +159,25 @@
       // Error message output        
       "#oe0" - Disable ERROR message output.
       "#oe1" - Enable ERROR message output.
-    
-    
+      "#oec" - Output ERROR COUNT.
+      "#oem" - Output MATH ERROR COUNT.
+
+
+  "#I" - Toggle INERTIAL-only mode for yaw computation.
+
+
   "#f" - Request one output frame - useful when continuous output is disabled and updates are
          required in larger intervals only. Though #f only requests one reply, replies are still
          bound to the internal 20ms (50Hz) time raster. So worst case delay that #f can add is 19.99ms.
-         
-         
+ 
+  
   "#s<xy>" - Request synch token - useful to find out where the frame boundaries are in a continuous
          binary stream or to see if tracker is present and answering. The tracker will send
          "#SYNCH<xy>\r\n" in response (so it's possible to read using a readLine() function).
          x and y are two mandatory but arbitrary bytes that can be used to find out which request
          the answer belongs to.
-          
-          
+
+
   ("#C" and "#D" - Reserved for communication with optional Bluetooth module.)
   
   Newline characters are not required. So you could send "#ob#o1#s", which
@@ -320,9 +331,17 @@ float GYRO_AVERAGE_OFFSET_Z = -18.36;
 // DEBUG OPTIONS
 /*****************************************************************/
 // When set to true, gyro drift correction will not be applied
-#define DEBUG__NO_DRIFT_CORRECTION false
+boolean DEBUG__NO_DRIFT_CORRECTION = false;
 // Print elapsed time after each I/O loop
 #define DEBUG__PRINT_LOOP_TIME false
+
+#define DEBUG__PRINT_LOOP_TIME_2 false
+
+#define DEBUG__ADD_LOOP_DELAY false
+
+#define DEBUG__LOOP_DELAY 1
+
+#define DEBUG__USE_DMP_M0 false
 
 
 /*****************************************************************/
@@ -354,6 +373,11 @@ float GYRO_AVERAGE_OFFSET_Z = -18.36;
 #define MPU9250_INT_ACTIVE LOW
 
 MPU9250_DMP imu; // Create an instance of the MPU9250_DMP class
+
+#if DEBUG__USE_DMP_M0 == true
+float initialmagyaw = -10000;
+float initialimuyaw = -10000;
+#endif // DEBUG__USE_DMP_M0
 #else
 #include <Wire.h>
 #endif // HW__VERSION_CODE
@@ -397,17 +421,17 @@ float MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
 // Sensor variables
-float accel[3];  // Actually stores the NEGATED acceleration (equals gravity, if board not moving).
-float accel_min[3];
-float accel_max[3];
+float accel[3] = {0, 0, 0}; // Actually stores the NEGATED acceleration (equals gravity, if board not moving).
+float accel_min[3] = {0, 0, 0};
+float accel_max[3] = {0, 0, 0};
 
-float magnetom[3];
-float magnetom_min[3];
-float magnetom_max[3];
-float magnetom_tmp[3];
+float magnetom[3] = {0, 0, 0};
+float magnetom_min[3] = {0, 0, 0};
+float magnetom_max[3] = {0, 0, 0};
+float magnetom_tmp[3] = {0, 0, 0};
 
-float gyro[3];
-float gyro_average[3];
+float gyro[3] = {0, 0, 0};
+float gyro_average[3] = {0, 0, 0};
 int gyro_num_samples = 0;
 
 // DCM variables
@@ -442,6 +466,7 @@ boolean reset_calibration_session_flag = true;
 int num_accel_errors = 0;
 int num_magn_errors = 0;
 int num_gyro_errors = 0;
+int num_math_errors = 0;
 
 void read_sensors() {
 #if HW__VERSION_CODE == 14001
@@ -477,16 +502,16 @@ void recalculateMagnCalibration() {
 // Init DCM with unfiltered orientation
 // TODO re-init global vars?
 void reset_sensor_fusion() {
-  float temp1[3];
-  float temp2[3];
-  float xAxis[] = {1.0f, 0.0f, 0.0f};
+  float temp1[3] = {0, 0, 0};
+  float temp2[3] = {0, 0, 0};
+  float xAxis[3] = {1, 0, 0};
 
   read_sensors();
   timestamp = millis();
   
   // GET PITCH
   // Using y-z-plane-component/x-component of gravity vector
-  pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
+  if ((accel[0] == 0)&&(sqrt(accel[1] * accel[1] + accel[2] * accel[2]) == 0)) num_math_errors++; else pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2])); // Attempt to prevent nan problems...
 	
   // GET ROLL
   // Compensate pitch of gravity vector 
@@ -495,7 +520,7 @@ void reset_sensor_fusion() {
   // Normally using x-z-plane-component/y-component of compensated gravity vector
   // roll = atan2(temp2[1], sqrt(temp2[0] * temp2[0] + temp2[2] * temp2[2]));
   // Since we compensated for pitch, x-z-plane-component equals z-component:
-  roll = atan2(temp2[1], temp2[2]);
+  if ((temp2[1] == 0)&&(temp2[2] == 0)) num_math_errors++; else roll = atan2(temp2[1], temp2[2]); // Attempt to prevent nan problems...
   
   // GET YAW
   Compass_Heading();
@@ -586,7 +611,9 @@ void setup()
 #if HW__VERSION_CODE == 14001
   // Set up MPU-9250 interrupt input (active-low)
   pinMode(MPU9250_INT_PIN, INPUT_PULLUP);
+  //delay(50);  // Give sensors enough time to start
   initIMU();
+  //delay(50);  // Give sensors enough time to start
 #else
   I2C_Init();
   Accel_Init();
@@ -698,12 +725,17 @@ void loop()
           char error_param = readChar();
           if (error_param == '0') output_errors = false;
           else if (error_param == '1') output_errors = true;
-          else if (error_param == 'c') // get error count
+          else if (error_param == 'c') // get error _c_ount
           {
             LOG_PORT.print("#AMG-ERR:");
             LOG_PORT.print(num_accel_errors); LOG_PORT.print(",");
             LOG_PORT.print(num_magn_errors); LOG_PORT.print(",");
             LOG_PORT.println(num_gyro_errors);
+          }
+          else if (error_param == 'm') // get _m_ath error count
+          {
+            LOG_PORT.print("#MATH-ERR:");
+            LOG_PORT.println(num_math_errors);
           }
         }
       }
@@ -747,7 +779,7 @@ void loop()
          LOG_PORT.print("GYRO_AVERAGE_OFFSET_Y:");LOG_PORT.println(GYRO_AVERAGE_OFFSET_Y);
          LOG_PORT.print("GYRO_AVERAGE_OFFSET_Z:");LOG_PORT.println(GYRO_AVERAGE_OFFSET_Z);
       }
-      else if (command == 'c') // Set _i_nput mode
+	  else if (command == 'c') // Set _i_nput mode
       {
         char input_param = readChar();
         if (input_param == 'a')  // Calibrate _a_ccelerometer
@@ -868,6 +900,15 @@ void loop()
               GYRO_AVERAGE_OFFSET_Z = value_param;
         }
       }
+	  else if (command == 'I') // Toggle _i_nertial-only mode for yaw computation
+	  {
+		DEBUG__NO_DRIFT_CORRECTION = !DEBUG__NO_DRIFT_CORRECTION;
+#if DEBUG__USE_DMP_M0 == true
+		// Update reference for yaw...
+		initialmagyaw = -MAG_Heading;
+		initialimuyaw = imu.yaw*PI/180.0f;
+#endif // DEBUG__USE_DMP_M0
+	  }
 #if OUTPUT__HAS_RN_BLUETOOTH == true
       // Read messages from bluetooth module
       // For this to work, the connect/disconnect message prefix of the module has to be set to "#".
@@ -884,6 +925,10 @@ void loop()
   // Time to read the sensors again?
   if((millis() - timestamp) >= OUTPUT__DATA_INTERVAL)
   {
+#if DEBUG__PRINT_LOOP_TIME_2 == true
+    LOG_PORT.print("loop time (ms) = ");
+    LOG_PORT.println(millis() - timestamp);
+#endif // DEBUG__PRINT_LOOP_TIME_2
     timestamp_old = timestamp;
     timestamp = millis();
     if (timestamp > timestamp_old)
@@ -902,13 +947,17 @@ void loop()
     {
       // Apply sensor calibration
       compensate_sensor_errors();
-    
+
+#if DEBUG__USE_DMP_M0 == true
+	  Euler_angles_DMP_M0();
+#else
       // Run DCM algorithm
       Compass_Heading(); // Calculate magnetic heading
       Matrix_update();
       Normalize();
       Drift_correction();
       Euler_angles();
+#endif // DEBUG__USE_DMP_M0
       
       if (output_stream_on || output_single_on) output_angles();
     }
@@ -917,12 +966,16 @@ void loop()
       // Apply sensor calibration
       compensate_sensor_errors();
     
+#if DEBUG__USE_DMP_M0 == true
+	  Euler_angles_DMP_M0();
+#else
       // Run DCM algorithm
       Compass_Heading(); // Calculate magnetic heading
       Matrix_update();
       Normalize();
       Drift_correction();
       Euler_angles();
+#endif // DEBUG__USE_DMP_M0
       
       if (output_stream_on || output_single_on) output_both_angles_and_sensors_text();
     }
@@ -943,5 +996,12 @@ void loop()
   {
     LOG_PORT.println("waiting...");
   }
+#else
+#if DEBUG__ADD_LOOP_DELAY == true
+  else
+  {
+	delay(DEBUG__LOOP_DELAY);
+  }
+#endif // DEBUG__ADD_LOOP_DELAY
 #endif
 }

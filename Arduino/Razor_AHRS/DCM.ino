@@ -32,14 +32,14 @@ void Normalize(void)
 /**************************************************/
 void Drift_correction(void)
 {
-  float mag_heading_x;
-  float mag_heading_y;
-  float errorCourse;
+  float mag_heading_x = 0;
+  float mag_heading_y = 0;
+  float errorCourse = 0;
   //Compensation the Roll, Pitch and Yaw drift. 
   static float Scaled_Omega_P[3];
   static float Scaled_Omega_I[3];
-  float Accel_magnitude;
-  float Accel_weight;
+  float Accel_magnitude = 0;
+  float Accel_weight = 0;
   
   
   //*****Roll and Pitch***************
@@ -85,27 +85,30 @@ void Matrix_update(void)
   Vector_Add(&Omega[0], &Gyro_Vector[0], &Omega_I[0]);  //adding proportional term
   Vector_Add(&Omega_Vector[0], &Omega[0], &Omega_P[0]); //adding Integrator term
   
-#if DEBUG__NO_DRIFT_CORRECTION == true // Do not use drift correction
-  Update_Matrix[0][0]=0;
-  Update_Matrix[0][1]=-G_Dt*Gyro_Vector[2];//-z
-  Update_Matrix[0][2]=G_Dt*Gyro_Vector[1];//y
-  Update_Matrix[1][0]=G_Dt*Gyro_Vector[2];//z
-  Update_Matrix[1][1]=0;
-  Update_Matrix[1][2]=-G_Dt*Gyro_Vector[0];
-  Update_Matrix[2][0]=-G_Dt*Gyro_Vector[1];
-  Update_Matrix[2][1]=G_Dt*Gyro_Vector[0];
-  Update_Matrix[2][2]=0;
-#else // Use drift correction
-  Update_Matrix[0][0]=0;
-  Update_Matrix[0][1]=-G_Dt*Omega_Vector[2];//-z
-  Update_Matrix[0][2]=G_Dt*Omega_Vector[1];//y
-  Update_Matrix[1][0]=G_Dt*Omega_Vector[2];//z
-  Update_Matrix[1][1]=0;
-  Update_Matrix[1][2]=-G_Dt*Omega_Vector[0];//-x
-  Update_Matrix[2][0]=-G_Dt*Omega_Vector[1];//-y
-  Update_Matrix[2][1]=G_Dt*Omega_Vector[0];//x
-  Update_Matrix[2][2]=0;
-#endif
+  if (DEBUG__NO_DRIFT_CORRECTION) // Do not use drift correction
+  {
+	Update_Matrix[0][0] = 0;
+	Update_Matrix[0][1] = -G_Dt*Gyro_Vector[2];//-z
+	Update_Matrix[0][2] = G_Dt*Gyro_Vector[1];//y
+	Update_Matrix[1][0] = G_Dt*Gyro_Vector[2];//z
+	Update_Matrix[1][1] = 0;
+	Update_Matrix[1][2] = -G_Dt*Gyro_Vector[0];
+	Update_Matrix[2][0] = -G_Dt*Gyro_Vector[1];
+	Update_Matrix[2][1] = G_Dt*Gyro_Vector[0];
+	Update_Matrix[2][2] = 0;
+  }
+  else // Use drift correction
+  {
+	Update_Matrix[0][0] = 0;
+	Update_Matrix[0][1] = -G_Dt*Omega_Vector[2];//-z
+	Update_Matrix[0][2] = G_Dt*Omega_Vector[1];//y
+	Update_Matrix[1][0] = G_Dt*Omega_Vector[2];//z
+	Update_Matrix[1][1] = 0;
+	Update_Matrix[1][2] = -G_Dt*Omega_Vector[0];//-x
+	Update_Matrix[2][0] = -G_Dt*Omega_Vector[1];//-y
+	Update_Matrix[2][1] = G_Dt*Omega_Vector[0];//x
+	Update_Matrix[2][2] = 0;
+  }
 
   Matrix_Multiply(DCM_Matrix,Update_Matrix,Temporary_Matrix); //a*b=c
 
@@ -120,8 +123,7 @@ void Matrix_update(void)
 
 void Euler_angles(void)
 {
-  pitch = -asin(DCM_Matrix[2][0]);
+  if ((DCM_Matrix[2][0] < -1)||(DCM_Matrix[2][0] > 1)) num_math_errors++; else pitch = -asin(DCM_Matrix[2][0]); // Attempt to prevent nan problems...
   roll = atan2(DCM_Matrix[2][1],DCM_Matrix[2][2]);
   yaw = atan2(DCM_Matrix[1][0],DCM_Matrix[0][0]);
 }
-

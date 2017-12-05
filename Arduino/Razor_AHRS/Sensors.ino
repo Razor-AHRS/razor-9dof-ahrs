@@ -106,6 +106,42 @@ void loop_imu()
 	magnetom[1] = (-10.0f*imu.calcMag(imu.mx));
 	magnetom[2] = (10.0f*imu.calcMag(imu.mz));
 }
+
+#if DEBUG__USE_DMP_M0 == true
+void Euler_angles_DMP_M0(void)
+{
+	Gyro_Vector[0] = GYRO_SCALED_RAD(gyro[0]); //gyro x roll
+	Gyro_Vector[1] = GYRO_SCALED_RAD(gyro[1]); //gyro y pitch
+	Gyro_Vector[2] = GYRO_SCALED_RAD(gyro[2]); //gyro z yaw
+
+	Accel_Vector[0] = accel[0];
+	Accel_Vector[1] = accel[1];
+	Accel_Vector[2] = accel[2];
+
+	imu.computeEulerAngles();
+
+	// Convert from NWU to NED...
+	pitch = -imu.pitch*PI/180.0f;
+	roll = imu.roll*PI/180.0f;
+
+	Compass_Heading(); // Calculate magnetic heading
+
+	float magyaw = -MAG_Heading;
+	float imuyaw = imu.yaw*PI/180.0f;
+	float fusionyaw = 0;
+	float magfusioncoef = 0.0f;
+	if (initialmagyaw == -10000) initialmagyaw = magyaw;
+	if (initialimuyaw == -10000) initialimuyaw = imuyaw;
+	if (!DEBUG__NO_DRIFT_CORRECTION)
+		fusionyaw = magyaw*180.0f/PI;
+	else
+		fusionyaw = atan2((1-magfusioncoef)*sin(imuyaw+initialmagyaw-initialimuyaw)+magfusioncoef*sin(magyaw),
+		(1-magfusioncoef)*cos(imuyaw+initialmagyaw-initialimuyaw)+magfusioncoef*cos(magyaw))*180.0f/PI;
+
+	// Convert from NWU to NED...
+	yaw = -fusionyaw*PI/180.0f;
+}
+#endif // DEBUG__USE_DMP_M0
 #else
 // I2C code to read the sensors
 

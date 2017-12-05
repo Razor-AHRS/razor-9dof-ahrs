@@ -2,12 +2,12 @@
 
 void Compass_Heading()
 {
-  float mag_x;
-  float mag_y;
-  float cos_roll;
-  float sin_roll;
-  float cos_pitch;
-  float sin_pitch;
+  float mag_x = 0;
+  float mag_y = 0;
+  float cos_roll = 0;
+  float sin_roll = 0;
+  float cos_pitch = 0;
+  float sin_pitch = 0;
   
   cos_roll = cos(roll);
   sin_roll = sin(roll);
