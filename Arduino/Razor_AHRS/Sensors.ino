@@ -1,11 +1,32 @@
 /* This file is part of the Razor AHRS Firmware */
 
 #if HW__VERSION_CODE == 14001
+/*
+* Known Bug -
+* DMP when enabled will sample sensor data at 200Hz and output to FIFO at the rate
+* specified in the dmp_set_fifo_rate API. The DMP will then sent an interrupt once
+* a sample has been put into the FIFO. Therefore if the dmp_set_fifo_rate is at 25Hz
+* there will be a 25Hz interrupt from the MPU device.
+*
+* There is a known issue in which if you do not enable DMP_FEATURE_TAP
+* then the interrupts will be at 200Hz even if fifo rate
+* is set at a different rate. To avoid this issue include the DMP_FEATURE_TAP
+*
+* DMP sensor fusion works only with gyro at +-2000dps and accel +-2G
+*/
 #define DMP_SAMPLE_RATE    100 // Logging/DMP sample rate(4-200 Hz)
 #define IMU_COMPASS_SAMPLE_RATE 100 // Compass sample rate (4-100 Hz)
 #define IMU_AG_SAMPLE_RATE 100 // Accel/gyro sample rate Must be between 4Hz and 1kHz
+#if DEBUG__USE_DEFAULT_GYRO_FSR_M0 == true
 #define IMU_GYRO_FSR       2000 // Gyro full-scale range (250, 500, 1000, or 2000)
+#else
+#define IMU_GYRO_FSR       500 // Gyro full-scale range (250, 500, 1000, or 2000)
+#endif // DEBUG__USE_DEFAULT_GYRO_FSR_M0
+#if DEBUG__USE_DEFAULT_ACCEL_FSR_M0 == true
+#define IMU_ACCEL_FSR      2 // Accel full-scale range (2, 4, 8, or 16)
+#else
 #define IMU_ACCEL_FSR      16 // Accel full-scale range (2, 4, 8, or 16)
+#endif // DEBUG__USE_DEFAULT_ACCEL_FSR_M0
 #define IMU_AG_LPF         5 // Accel/Gyro LPF corner frequency (5, 10, 20, 42, 98, or 188 Hz)
 #define ENABLE_GYRO_CALIBRATION true
 
@@ -20,10 +41,24 @@ bool initIMU(void)
 	if (imu.begin() != INV_SUCCESS)
 		return false;
 
-	// Set up MPU-9250 interrupt:
-	imu.enableInterrupt(); // Enable interrupt output
-	imu.setIntLevel(1);    // Set interrupt to active-low
-	imu.setIntLatched(1);  // Latch interrupt output
+#if DEBUG__ENABLE_INTERRUPT_M0 == true
+	// Use enableInterrupt() to configure the MPU-9250's 
+	// interrupt output as a "data ready" indicator.
+	imu.enableInterrupt();
+
+	// The interrupt level can either be active-high or low.
+	// Configure as active-low, since we'll be using the pin's
+	// internal pull-up resistor.
+	// Options are INT_ACTIVE_LOW or INT_ACTIVE_HIGH
+	imu.setIntLevel(INT_ACTIVE_LOW);
+
+	// The interrupt can be set to latch until data has
+	// been read, or to work as a 50us pulse.
+	// Use latching method -- we'll read from the sensor
+	// as soon as we see the pin go LOW.
+	// Options are INT_LATCHED or INT_50US_PULSE
+	imu.setIntLatched(INT_LATCHED);
+#endif // DEBUG__ENABLE_INTERRUPT_M0
 
 	// Configure sensors:
 	// Set gyro full-scale range: options are 250, 500, 1000, or 2000:
@@ -38,9 +73,11 @@ bool initIMU(void)
 	// Set compass sample rate: between 4-100Hz
 	imu.setCompassSampleRate(IMU_COMPASS_SAMPLE_RATE);
 
+#if DEBUG__USE_DMP_M0 == true
 	// Configure digital motion processor. Use the FIFO to get
 	// data from the DMP.
 	unsigned short dmpFeatureMask = 0;
+	//dmp_set_interrupt_mode(DMP_INT_CONTINUOUS);
 	if (ENABLE_GYRO_CALIBRATION)
 	{
 		// Gyro calibration re-calibrates the gyro after a set amount
@@ -56,9 +93,23 @@ bool initIMU(void)
 	// Add accel and quaternion's to the DMP
 	dmpFeatureMask |= DMP_FEATURE_SEND_RAW_ACCEL;
 	dmpFeatureMask |= DMP_FEATURE_6X_LP_QUAT;
+	// Because of known issue without DMP_FEATURE_TAP...
+	dmpFeatureMask |= DMP_FEATURE_TAP;
 
 	// Initialize the DMP, and set the FIFO's update rate:
 	imu.dmpBegin(dmpFeatureMask, fifoRate);
+#else
+#if DEBUG__ENABLE_FIFO_M0 == true
+	// Use configureFifo to set which sensors should be stored
+	// in the buffer.  
+	// Parameter to this function can be: INV_XYZ_GYRO, 
+	// INV_XYZ_ACCEL, INV_X_GYRO, INV_Y_GYRO, or INV_Z_GYRO
+	imu.configureFifo(INV_XYZ_GYRO|INV_XYZ_ACCEL);
+
+	// Compass needs to be enabled again here due to a side effect of mpu_configure_fifo()...
+	imu.setSensors(INV_XYZ_GYRO|INV_XYZ_ACCEL|INV_XYZ_COMPASS);
+#endif // DEBUG__ENABLE_FIFO_M0
+#endif // DEBUG__USE_DMP_M0
 
 	return true; // Return success
 }
@@ -66,7 +117,15 @@ bool initIMU(void)
 void loop_imu()
 {
 	// Check IMU for new data, and log it.
+#if DEBUG__USE_DMP_M0 == true
 	if (!imu.fifoAvailable())
+#else
+#if DEBUG__ENABLE_FIFO_M0 == true
+	if (!imu.fifoAvailable())
+#else
+	if (!imu.dataReady())
+#endif // DEBUG__ENABLE_FIFO_M0
+#endif // DEBUG__USE_DMP_M0
 	{
 		num_accel_errors++;
 		if (output_errors) LOG_PORT.println("!ERR: reading accelerometer");
@@ -75,14 +134,29 @@ void loop_imu()
 		return;
 	}
 
-	// Read from the digital motion processor's FIFO.
-	if (imu.dmpUpdateFifo() != INV_SUCCESS)
+	// Get the latest data...
+#if DEBUG__USE_DMP_M0 == true
+	while (imu.fifoAvailable())
 	{
-		num_accel_errors++;
-		if (output_errors) LOG_PORT.println("!ERR: reading accelerometer");
-		num_gyro_errors++;
-		if (output_errors) LOG_PORT.println("!ERR: reading gyroscope");
-		return;
+		// Read from the digital motion processor's FIFO.
+		if (imu.dmpUpdateFifo() != INV_SUCCESS)
+#else
+#if DEBUG__ENABLE_FIFO_M0 == true
+	while (imu.fifoAvailable())
+	{
+		if (imu.updateFifo() != INV_SUCCESS)
+#else
+	{
+		if (imu.update(UPDATE_ACCEL|UPDATE_GYRO) != INV_SUCCESS)
+#endif // DEBUG__ENABLE_FIFO_M0
+#endif // DEBUG__USE_DMP_M0
+		{
+			num_accel_errors++;
+			if (output_errors) LOG_PORT.println("!ERR: reading accelerometer");
+			num_gyro_errors++;
+			if (output_errors) LOG_PORT.println("!ERR: reading gyroscope");
+			return;
+		}
 	}
 
 	// Read from the compass.
@@ -107,8 +181,8 @@ void loop_imu()
 	magnetom[2] = (10.0f*imu.calcMag(imu.mz));
 }
 
-#if DEBUG__USE_DMP_M0 == true
-void Euler_angles_DMP_M0(void)
+#if DEBUG__USE_ONLY_DMP_M0 == true
+void Euler_angles_only_DMP_M0(void)
 {
 	Gyro_Vector[0] = GYRO_SCALED_RAD(gyro[0]); //gyro x roll
 	Gyro_Vector[1] = GYRO_SCALED_RAD(gyro[1]); //gyro y pitch
@@ -141,7 +215,7 @@ void Euler_angles_DMP_M0(void)
 	// Convert from NWU to NED...
 	yaw = -fusionyaw*PI/180.0f;
 }
-#endif // DEBUG__USE_DMP_M0
+#endif // DEBUG__USE_ONLY_DMP_M0
 #else
 // I2C code to read the sensors
 

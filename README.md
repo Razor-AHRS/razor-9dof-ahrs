@@ -58,12 +58,3 @@ Building your own app:
 ### Optional: ROS Interface
 
 See http://wiki.ros.org/razor_imu_9dof.
-
-Donation
----
-
-If the code and the tutorial helped you and you'd like to buy me a beer to say thanks, I'll be happy and say cheers!
-
-PayPal:
-
-[![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=KNQHN837SKX8Q)

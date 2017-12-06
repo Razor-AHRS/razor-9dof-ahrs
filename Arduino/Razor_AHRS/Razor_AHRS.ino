@@ -56,6 +56,8 @@
 *       * Attempts to fix random nan problems in orientation computations.
 *       * Added an option to get yaw/pitch/roll from the M0 DMP.
 *       * Added a command to enable/disable the use of magnetometers for yaw computation.
+*     * v1.5.5
+*       * Added various options to determine the most stable configuration for the M0.
 *
 * TODOs:
 *   * Allow optional use of Flash/EEPROM for storing and reading calibration values.
@@ -261,7 +263,7 @@ boolean output_errors = false;  // true or false
 /*****************************************************************/
 // How to calibrate? Read the tutorial at http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
 // Put MIN/MAX and OFFSET readings for your board here!
-// For the M0, only the extended magnetometer calibration seems to be really necessary...
+// For the M0, only the extended magnetometer calibration seems to be really necessary if DEBUG__USE_DMP_M0 is set to true...
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
 float ACCEL_X_MIN = -250;
@@ -340,8 +342,19 @@ boolean DEBUG__NO_DRIFT_CORRECTION = false;
 #define DEBUG__ADD_LOOP_DELAY false
 
 #define DEBUG__LOOP_DELAY 1
-
+// Set to true to enable auto-calibration features of the M0 (does not apply to magnetometers)
 #define DEBUG__USE_DMP_M0 false
+// Set to true to disable the use of the DCM algorithm
+#define DEBUG__USE_ONLY_DMP_M0 false
+
+#define DEBUG__ENABLE_FIFO_M0 false
+
+#define DEBUG__ENABLE_INTERRUPT_M0 false
+
+#define DEBUG__USE_DEFAULT_GYRO_FSR_M0 false
+
+#define DEBUG__USE_DEFAULT_ACCEL_FSR_M0 false
+
 
 
 /*****************************************************************/
@@ -374,10 +387,20 @@ boolean DEBUG__NO_DRIFT_CORRECTION = false;
 
 MPU9250_DMP imu; // Create an instance of the MPU9250_DMP class
 
+#if DEBUG__USE_ONLY_DMP_M0 == true
+#undef DEBUG__USE_DMP_M0
+#define DEBUG__USE_DMP_M0 true
+#endif // DEBUG__USE_ONLY_DMP_M0
+
 #if DEBUG__USE_DMP_M0 == true
+#undef DEBUG__ENABLE_FIFO_M0
+#define DEBUG__ENABLE_FIFO_M0 true
+#endif // DEBUG__USE_DMP_M0
+
+#if DEBUG__USE_ONLY_DMP_M0 == true
 float initialmagyaw = -10000;
 float initialimuyaw = -10000;
-#endif // DEBUG__USE_DMP_M0
+#endif // DEBUG__USE_ONLY_DMP_M0
 #else
 #include <Wire.h>
 #endif // HW__VERSION_CODE
@@ -609,11 +632,11 @@ void setup()
   // Init sensors
   delay(50);  // Give sensors enough time to start
 #if HW__VERSION_CODE == 14001
+#if DEBUG__ENABLE_INTERRUPT_M0 == true
   // Set up MPU-9250 interrupt input (active-low)
   pinMode(MPU9250_INT_PIN, INPUT_PULLUP);
-  //delay(50);  // Give sensors enough time to start
+#endif // DEBUG__ENABLE_INTERRUPT_M0
   initIMU();
-  //delay(50);  // Give sensors enough time to start
 #else
   I2C_Init();
   Accel_Init();
@@ -903,11 +926,11 @@ void loop()
 	  else if (command == 'I') // Toggle _i_nertial-only mode for yaw computation
 	  {
 		DEBUG__NO_DRIFT_CORRECTION = !DEBUG__NO_DRIFT_CORRECTION;
-#if DEBUG__USE_DMP_M0 == true
+#if DEBUG__USE_ONLY_DMP_M0 == true
 		// Update reference for yaw...
 		initialmagyaw = -MAG_Heading;
 		initialimuyaw = imu.yaw*PI/180.0f;
-#endif // DEBUG__USE_DMP_M0
+#endif // DEBUG__USE_ONLY_DMP_M0
 	  }
 #if OUTPUT__HAS_RN_BLUETOOTH == true
       // Read messages from bluetooth module
@@ -948,8 +971,8 @@ void loop()
       // Apply sensor calibration
       compensate_sensor_errors();
 
-#if DEBUG__USE_DMP_M0 == true
-	  Euler_angles_DMP_M0();
+#if DEBUG__USE_ONLY_DMP_M0 == true
+	  Euler_angles_only_DMP_M0();
 #else
       // Run DCM algorithm
       Compass_Heading(); // Calculate magnetic heading
@@ -957,7 +980,7 @@ void loop()
       Normalize();
       Drift_correction();
       Euler_angles();
-#endif // DEBUG__USE_DMP_M0
+#endif // DEBUG__USE_ONLY_DMP_M0
       
       if (output_stream_on || output_single_on) output_angles();
     }
@@ -966,8 +989,8 @@ void loop()
       // Apply sensor calibration
       compensate_sensor_errors();
     
-#if DEBUG__USE_DMP_M0 == true
-	  Euler_angles_DMP_M0();
+#if DEBUG__USE_ONLY_DMP_M0 == true
+	  Euler_angles_only_DMP_M0();
 #else
       // Run DCM algorithm
       Compass_Heading(); // Calculate magnetic heading
@@ -975,7 +998,7 @@ void loop()
       Normalize();
       Drift_correction();
       Euler_angles();
-#endif // DEBUG__USE_DMP_M0
+#endif // DEBUG__USE_ONLY_DMP_M0
       
       if (output_stream_on || output_single_on) output_both_angles_and_sensors_text();
     }
