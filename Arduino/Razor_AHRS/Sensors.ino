@@ -20,7 +20,7 @@
 #if DEBUG__USE_DEFAULT_GYRO_FSR_M0 == true
 #define IMU_GYRO_FSR       2000 // Gyro full-scale range (250, 500, 1000, or 2000)
 #else
-#define IMU_GYRO_FSR       500 // Gyro full-scale range (250, 500, 1000, or 2000)
+#define IMU_GYRO_FSR       2000 // Gyro full-scale range (250, 500, 1000, or 2000)
 #endif // DEBUG__USE_DEFAULT_GYRO_FSR_M0
 #if DEBUG__USE_DEFAULT_ACCEL_FSR_M0 == true
 #define IMU_ACCEL_FSR      2 // Accel full-scale range (2, 4, 8, or 16)

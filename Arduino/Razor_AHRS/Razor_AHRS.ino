@@ -58,6 +58,10 @@
 *       * Added a command to enable/disable the use of magnetometers for yaw computation.
 *     * v1.5.5
 *       * Added various options to determine the most stable configuration for the M0.
+*     * v1.5.6
+*       * Removed some unnecessary math error checking.
+*       * Set back gyro full-scale range to the maximum for the M0.
+*       * Increased startup delay to try to get a correct initial orientation for the M0.
 *
 * TODOs:
 *   * Allow optional use of Flash/EEPROM for storing and reading calibration values.
@@ -534,7 +538,7 @@ void reset_sensor_fusion() {
   
   // GET PITCH
   // Using y-z-plane-component/x-component of gravity vector
-  if ((accel[0] == 0)&&(sqrt(accel[1] * accel[1] + accel[2] * accel[2]) == 0)) num_math_errors++; else pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2])); // Attempt to prevent nan problems...
+  pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
 	
   // GET ROLL
   // Compensate pitch of gravity vector 
@@ -543,7 +547,7 @@ void reset_sensor_fusion() {
   // Normally using x-z-plane-component/y-component of compensated gravity vector
   // roll = atan2(temp2[1], sqrt(temp2[0] * temp2[0] + temp2[2] * temp2[2]));
   // Since we compensated for pitch, x-z-plane-component equals z-component:
-  if ((temp2[1] == 0)&&(temp2[2] == 0)) num_math_errors++; else roll = atan2(temp2[1], temp2[2]); // Attempt to prevent nan problems...
+  roll = atan2(temp2[1], temp2[2]);
   
   // GET YAW
   Compass_Heading();
@@ -645,7 +649,11 @@ void setup()
 #endif // HW__VERSION_CODE
   
   // Read sensors, init DCM algorithm
+#if HW__VERSION_CODE == 14001
+  delay(400);  // Give sensors enough time to collect data
+#else
   delay(20);  // Give sensors enough time to collect data
+#endif // HW__VERSION_CODE
   reset_sensor_fusion();
 
   // Init output
