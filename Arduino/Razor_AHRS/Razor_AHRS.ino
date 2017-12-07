@@ -62,6 +62,8 @@
 *       * Removed some unnecessary math error checking.
 *       * Set back gyro full-scale range to the maximum for the M0.
 *       * Increased startup delay to try to get a correct initial orientation for the M0.
+*     * v1.5.7
+*       * Calibration data are now also used to compute the initial orientation.
 *
 * TODOs:
 *   * Allow optional use of Flash/EEPROM for storing and reading calibration values.
@@ -525,38 +527,6 @@ void recalculateMagnCalibration() {
   MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
 }
 
-// Read every sensor and record a time stamp
-// Init DCM with unfiltered orientation
-// TODO re-init global vars?
-void reset_sensor_fusion() {
-  float temp1[3] = {0, 0, 0};
-  float temp2[3] = {0, 0, 0};
-  float xAxis[3] = {1, 0, 0};
-
-  read_sensors();
-  timestamp = millis();
-  
-  // GET PITCH
-  // Using y-z-plane-component/x-component of gravity vector
-  pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
-	
-  // GET ROLL
-  // Compensate pitch of gravity vector 
-  Vector_Cross_Product(temp1, accel, xAxis);
-  Vector_Cross_Product(temp2, xAxis, temp1);
-  // Normally using x-z-plane-component/y-component of compensated gravity vector
-  // roll = atan2(temp2[1], sqrt(temp2[0] * temp2[0] + temp2[2] * temp2[2]));
-  // Since we compensated for pitch, x-z-plane-component equals z-component:
-  roll = atan2(temp2[1], temp2[2]);
-  
-  // GET YAW
-  Compass_Heading();
-  yaw = MAG_Heading;
-  
-  // Init rotation matrix
-  init_rotation_matrix(DCM_Matrix, yaw, pitch, roll);
-}
-
 // Apply calibration to raw sensor readings
 void compensate_sensor_errors() {
     // Compensate accelerometer error
@@ -582,6 +552,39 @@ void compensate_sensor_errors() {
     gyro[0] -= GYRO_AVERAGE_OFFSET_X;
     gyro[1] -= GYRO_AVERAGE_OFFSET_Y;
     gyro[2] -= GYRO_AVERAGE_OFFSET_Z;
+}
+
+// Read every sensor and record a time stamp
+// Init DCM with unfiltered orientation
+// TODO re-init global vars?
+void reset_sensor_fusion() {
+  float temp1[3] = {0, 0, 0};
+  float temp2[3] = {0, 0, 0};
+  float xAxis[3] = {1, 0, 0};
+
+  read_sensors();
+  compensate_sensor_errors();
+  timestamp = millis();
+  
+  // GET PITCH
+  // Using y-z-plane-component/x-component of gravity vector
+  pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
+	
+  // GET ROLL
+  // Compensate pitch of gravity vector 
+  Vector_Cross_Product(temp1, accel, xAxis);
+  Vector_Cross_Product(temp2, xAxis, temp1);
+  // Normally using x-z-plane-component/y-component of compensated gravity vector
+  // roll = atan2(temp2[1], sqrt(temp2[0] * temp2[0] + temp2[2] * temp2[2]));
+  // Since we compensated for pitch, x-z-plane-component equals z-component:
+  roll = atan2(temp2[1], temp2[2]);
+  
+  // GET YAW
+  Compass_Heading();
+  yaw = MAG_Heading;
+  
+  // Init rotation matrix
+  init_rotation_matrix(DCM_Matrix, yaw, pitch, roll);
 }
 
 // Reset calibration session if reset_calibration_session_flag is set
