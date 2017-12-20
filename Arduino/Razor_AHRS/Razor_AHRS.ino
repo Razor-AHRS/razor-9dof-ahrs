@@ -140,7 +140,7 @@
       "#ox" - Output angles and linear acceleration and rotational
               velocity. Angles are in degrees, acceleration is
               in units of 1.0 = 1/256 G (9.8/256 m/s^2). Rotational
-              velocity is in rad/s^2. (Output frames have form like
+              velocity is in rad/s. (Output frames have form like
               "#YPRAG=-142.28,-5.38,33.52,0.1,0.1,1.0,0.01,0.01,0.01",
               followed by carriage return and line feed [\r\n]).
      
