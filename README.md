@@ -14,7 +14,7 @@ Tutorial
 ---
 
 You find a [detailed tutorial in the Wiki](https://github.com/ptrbrtz/razor-9dof-ahrs/wiki/Tutorial).  
-Note: for SEN-14001 (*9DoF Razor IMU M0*), you will need to follow the same instructions as for the default firmware on https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide and use an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library (an updated version of the default firmware is also available on https://github.com/lebarsfa/9DOF_Razor_IMU).
+Note: For SEN-14001 (*9DoF Razor IMU M0*), you will need to follow the same instructions as for the default firmware on https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide and use an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library (an updated version of the default firmware is also available on https://github.com/lebarsfa/9DOF_Razor_IMU).
 
 Quick setup
 ---
@@ -25,9 +25,9 @@ Select your hardware in `Arduino/Razor_AHRS/Razor_AHRS.ino` under `"USER SETUP A
 Upload the firmware using *Arduino*.  
 Run `Processing/Razor_AHRS_test/Razor_AHRS_test.pde` using *Processing*.
 
-### Optional: Mac OS X / Unix / Linux C++ Interface
+### Optional: Mac OS X / Unix / Linux / Windows C++ Interface
 
-Compile test program:
+Use the provided Qt project (check Projects\Run Settings\Run in terminal to force your application to run inside a separate terminal) or compile test program from the command line (add `-Iunix_adapt -DDISABLE_TIMEZONE_STRUCT_REDEFINITION` for MinGW/MSYS):
 
     g++ Example.cpp RazorAHRS.cpp -Wall -D_REENTRANT -lpthread -o example
 
@@ -35,7 +35,7 @@ Run it:
 
     ./example
 
-Sorry, no Windows support. But you could try to compile using cygwin.
+Note: To use the provided Visual Studio 2017 project, you will need to install Pthreads-win32 2.9.1 from http://www.ensta-bretagne.fr/lebars/Share/pthreads-win32-msvc.zip (only in 32 bit).
 
 ### Optional: Android Interface
 

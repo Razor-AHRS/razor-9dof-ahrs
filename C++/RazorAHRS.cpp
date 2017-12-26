@@ -1,5 +1,5 @@
 /******************************************************************************************
-* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.2
+* Mac OSX / Unix / Linux / Windows C++ Interface for Razor AHRS
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
@@ -8,12 +8,25 @@
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
-* Infos, updates, bug reports,contributions and feedback:
+* Infos, updates, bug reports, contributions and feedback:
 *     https://github.com/ptrbrtz/razor-9dof-ahrs
 ******************************************************************************************/
 
 #include "RazorAHRS.h"
 #include <cassert>
+
+#ifdef _WIN32
+#include <bits/fcntl2.h>   // for open(), ...
+
+// Since open(), close(), read(), write() functions already exist on Windows but with a
+// limited compatibility with Linux, we need to replace them with other versions...
+#define open open_linux
+#define close close_linux
+#define read read_linux
+#define write write_linux
+#endif // _WIN32
+
+static pthread_t null_pthread_id = {0};
 
 RazorAHRS::RazorAHRS(const std::string &port, DataCallbackFunc data_func, ErrorCallbackFunc error_func,
     Mode mode, int connect_timeout_ms, speed_t speed)
@@ -22,7 +35,7 @@ RazorAHRS::RazorAHRS(const std::string &port, DataCallbackFunc data_func, ErrorC
     , _connect_timeout_ms(connect_timeout_ms)
     , data(data_func)
     , error(error_func)
-    , _thread_id(0)
+    , _thread_id(null_pthread_id)
     , _stop_thread(false)
 {  
   // check data type sizes
@@ -89,8 +102,8 @@ RazorAHRS::RazorAHRS(const std::string &port, DataCallbackFunc data_func, ErrorC
 RazorAHRS::~RazorAHRS()
 {
   // if thread was started, stop thread
-  if (_thread_id) _stop_io_thread();
-  close(_serial_port);
+  if (!pthread_equal(_thread_id, null_pthread_id)) _stop_io_thread();
+  if (_serial_port != -1) close(_serial_port);
 }
 
 bool
@@ -116,8 +129,8 @@ RazorAHRS::_read_token(const std::string &token, char c)
 bool
 RazorAHRS::_init_razor()
 {
-  char in;
-  int result;
+  char in = 0;
+  int result = 0;
   struct timeval t0, t1, t2;
   const std::string synch_token = "#SYNCH";
   const std::string new_line = "\r\n";
@@ -139,7 +152,7 @@ RazorAHRS::_init_razor()
   while (true)
   {
     // try to read one byte from the port
-    result = read(_serial_port, &in, 1);
+    result = (int)read(_serial_port, &in, 1);
     
     // one byte read
     if (result > 0)
@@ -194,7 +207,7 @@ RazorAHRS::_init_razor()
   while (true)
   {    
     // try to read one byte from the port
-    result = read(_serial_port, &in, 1);
+    result = (int)read(_serial_port, &in, 1);
     
     // one byte read
     if (result > 0)
@@ -228,14 +241,14 @@ RazorAHRS::_open_serial_port(const char *port)
   }
   
   // something didn't work
-  close(_serial_port);
+  if (_serial_port != -1) close(_serial_port);
   return false;
 }
 
 bool
 RazorAHRS::_set_blocking_io()
 {
-  int flags;
+  int flags = 0;
   
   // clear O_NDELAY to make I/O blocking again
   // in fact this is semi-blocking, since we set VTIME on the port
@@ -251,7 +264,7 @@ RazorAHRS::_set_blocking_io()
 bool
 RazorAHRS::_set_nonblocking_io()
 {
-  int flags;
+  int flags = 0;
 
   // set O_NDELAY to make I/O non-blocking
   if (((flags = fcntl(_serial_port, F_GETFL, 0)) != -1) &&
@@ -272,8 +285,8 @@ RazorAHRS::_is_io_blocking()
 void*
 RazorAHRS::_thread(void *arg)
 {
-  char c;
-  int result;
+  char c = 0;
+  int result = 0;
   
   try
   {
@@ -291,7 +304,7 @@ RazorAHRS::_thread(void *arg)
   
   while (!_stop_thread)
   {
-    if ((result = read(_serial_port, &c, 1)) > 0) // blocks only for VTIME before returning
+    if ((result = (int)read(_serial_port, &c, 1)) > 0) // blocks only for VTIME before returning
     {
       // read binary stream
       // (type-punning: aliasing with char* is ok)

@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="unix_adapt">
+      <UniqueIdentifier>{1065271c-70ea-4715-a4a9-4fe59dc81026}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="unix_adapt\sys">
+      <UniqueIdentifier>{aade8419-768f-4238-9ea0-c1ed0b406f71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="unix_adapt\bits">
+      <UniqueIdentifier>{5a57374b-444c-4a81-9434-c047ee01f2a7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="RazorAHRS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unix_adapt\termios.h">
+      <Filter>unix_adapt</Filter>
+    </ClInclude>
+    <ClInclude Include="unix_adapt\unistd.h">
+      <Filter>unix_adapt</Filter>
+    </ClInclude>
+    <ClInclude Include="unix_adapt\bits\fcntl2.h">
+      <Filter>unix_adapt\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="unix_adapt\bits\termios.h">
+      <Filter>unix_adapt\bits</Filter>
+    </ClInclude>
+    <ClInclude Include="unix_adapt\sys\time.h">
+      <Filter>unix_adapt\sys</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Example.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RazorAHRS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

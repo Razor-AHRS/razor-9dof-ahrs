@@ -1,10 +1,10 @@
 /******************************************************************************************
-* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.2
+* Mac OSX / Unix / Linux / Windows C++ Interface for Razor AHRS
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2013 Peter Bartz Bartz [http://ptrbrtz.net]
+* Copyright (C) 2013 Peter Bartz [http://ptrbrtz.net]
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
@@ -17,7 +17,11 @@
 
 #include <string>
 #include <memory>
+#ifdef _MSC_VER
+#include <functional>
+#else
 #include <tr1/functional>
+#endif // _MSC_VER
 #include <stdexcept>
 #include <sstream>
 #include <unistd.h>  // for write(), close(), ...
@@ -25,6 +29,7 @@
 #include <fcntl.h>   // for open(), ...
 #include <errno.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 #ifndef _REENTRANT
 #error You need to compile with _REENTRANT defined since this uses threads!
