@@ -167,7 +167,7 @@ RazorAHRS::_init_razor()
     else
     {
       if (errno != EAGAIN && errno != EINTR)
-        throw std::runtime_error("Can not read from serial port (1).");
+        throw std::runtime_error("Cannot read from serial port (1).");
     }
 
     // check timeout
@@ -181,7 +181,7 @@ RazorAHRS::_init_razor()
     }
     if (elapsed_ms(t0, t2) > _connect_timeout_ms)
       // timeout -> tracker not present
-      throw std::runtime_error("Can not init: tracker does not answer.");
+      throw std::runtime_error("Cannot init: tracker does not answer.");
   }
   
   
@@ -196,7 +196,7 @@ RazorAHRS::_init_razor()
   if (_mode == YAW_PITCH_ROLL) config = "#ob" + config;
   else if (_mode == ACC_MAG_GYR_RAW) config = "#osrb" + config;
   else if (_mode == ACC_MAG_GYR_CALIBRATED) config = "#oscb" + config;
-  else throw std::runtime_error("Can not init: unknown 'mode' parameter.");  
+  else throw std::runtime_error("Cannot init: unknown 'mode' parameter.");  
 
   write(_serial_port, config.data(), config.length());
   
@@ -219,7 +219,7 @@ RazorAHRS::_init_razor()
     else
     {
       if (errno != EAGAIN && errno != EINTR)
-        throw std::runtime_error("Can not read from serial port (2).");
+        throw std::runtime_error("Cannot read from serial port (2).");
     }
   }
   
@@ -313,10 +313,10 @@ RazorAHRS::_thread(void *arg)
       if (_mode == YAW_PITCH_ROLL) {  // 3 floats
         if (_input_pos == 12) // we received a full frame
         {
-          // convert endianess if necessary
+          // convert endianness if necessary
           if (_big_endian())
           {
-            _swap_endianess(_input_buf.ypr, 3);
+            _swap_endianness(_input_buf.ypr, 3);
           }
           
           // invoke callback
@@ -327,10 +327,10 @@ RazorAHRS::_thread(void *arg)
       } else { // raw or calibrated sensor data (9 floats)
         if (_input_pos == 36) // we received a full frame
         {
-          // convert endianess if necessary
+          // convert endianness if necessary
           if (_big_endian())
           {
-            _swap_endianess(_input_buf.amg, 9);
+            _swap_endianness(_input_buf.amg, 9);
           }
           
           // invoke callback
@@ -345,7 +345,7 @@ RazorAHRS::_thread(void *arg)
     {
       if (errno != EAGAIN && errno != EINTR)
       {
-        error("Can not read from serial port (3).");
+        error("Cannot read from serial port (3).");
         return arg;
       }
     }

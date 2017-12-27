@@ -89,7 +89,7 @@ class RazorAHRS
     /* threading stuff */
     pthread_t _thread_id;
     void* _thread(void*);  // thread main function
-    volatile bool _stop_thread; // thred stop flag
+    volatile bool _stop_thread; // thread stop flag
 
     // start the tracking thread
     void _start_io_thread()
@@ -124,14 +124,14 @@ class RazorAHRS
         return (*(reinterpret_cast<const char*> (&num))) != 1;
     }
     
-    // swap endianess of int
-    void _swap_endianess(int &i)
+    // swap endianness of int
+    void _swap_endianness(int &i)
     {
       i = (i >> 24) | ((i << 8) & 0x00FF0000) | ((i >> 8) & 0x0000FF00) | (i << 24);
     }
     
-    // swap endianess of float
-    void _swap_endianess(float &f)
+    // swap endianness of float
+    void _swap_endianness(float &f)
     {
       float swapped;
       char *f_as_char = reinterpret_cast<char*> (&f);
@@ -146,18 +146,18 @@ class RazorAHRS
       f = swapped;
     }
     
-    // swap endianess of int array
-    void _swap_endianess(int arr[], int arr_length)
+    // swap endianness of int array
+    void _swap_endianness(int arr[], int arr_length)
     {
       for (int i = 0; i < arr_length; i++)
-        _swap_endianess(arr[i]);
+        _swap_endianness(arr[i]);
     }
     
-    // swap endianess of float array
-    void _swap_endianess(float arr[], int arr_length)
+    // swap endianness of float array
+    void _swap_endianness(float arr[], int arr_length)
     {
       for (int i = 0; i < arr_length; i++)
-        _swap_endianess(arr[i]);
+        _swap_endianness(arr[i]);
     }
 };
 

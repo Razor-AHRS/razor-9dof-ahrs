@@ -81,6 +81,11 @@ __inline int fcntl(int __fd, int __cmd, ...)
 {
 	HANDLE hDev = (HANDLE)(intptr_t)__fd;
 	COMMTIMEOUTS timeouts;
+	// Disable if XON/XOFF are necessary, enable if fcntl() is used together with O_NDELAY and timeouts...
+#ifdef ENABLE_O_NDELAY_WORKAROUND
+	DCB dcb;
+	DWORD ReadIntervalTimeout = 0, ReadTotalTimeoutConstant = 0, ReadTotalTimeoutMultiplier = 0, WriteTotalTimeoutConstant = 0;
+#endif // ENABLE_O_NDELAY_WORKAROUND
 	va_list argptr;
 	va_start(argptr, __cmd);
 
@@ -96,6 +101,41 @@ __inline int fcntl(int __fd, int __cmd, ...)
 		}
 		if (flags & O_NDELAY)
 		{
+			// Disable if XON/XOFF are necessary, enable if fcntl() is used together with O_NDELAY and timeouts...
+#ifdef ENABLE_O_NDELAY_WORKAROUND
+			// Need to save the original timeouts settings for next calls of fcntl()...
+
+			memset(&dcb, 0, sizeof(DCB));
+			if (!GetCommState(hDev, &dcb))
+			{
+				errno = EIO;
+				return -1;
+			}
+
+			// Warning : XoffLim and XonLim are just used as placeholders to save the original timeouts settings, 
+			// they are not normally related to timeouts...
+
+			ReadIntervalTimeout = timeouts.ReadIntervalTimeout;
+			ReadTotalTimeoutConstant = timeouts.ReadTotalTimeoutConstant;
+			ReadTotalTimeoutMultiplier = timeouts.ReadTotalTimeoutMultiplier;
+			WriteTotalTimeoutConstant = timeouts.WriteTotalTimeoutConstant;
+			if (ReadIntervalTimeout == MAXDWORD) ReadIntervalTimeout = 255*100;
+			else if (ReadIntervalTimeout/100 > 254) ReadIntervalTimeout = 254*100;
+			if (ReadTotalTimeoutConstant == MAXDWORD) ReadTotalTimeoutConstant = 255*100;
+			else if (ReadTotalTimeoutConstant/100 > 254) ReadTotalTimeoutConstant = 254*100;
+			if (ReadTotalTimeoutMultiplier == MAXDWORD) ReadTotalTimeoutMultiplier = 255*100;
+			else if (ReadTotalTimeoutMultiplier/100 > 254) ReadTotalTimeoutMultiplier = 254*100;
+			if (WriteTotalTimeoutConstant == MAXDWORD) WriteTotalTimeoutConstant = 255*100;
+			else if (WriteTotalTimeoutConstant/100 > 254) WriteTotalTimeoutConstant = 254*100;
+			dcb.XoffLim = (WORD)(((ReadIntervalTimeout/100)<<8)|(ReadTotalTimeoutConstant/100));
+			dcb.XonLim = (WORD)(((ReadTotalTimeoutMultiplier/100)<<8)|(WriteTotalTimeoutConstant/100));
+			if (!SetCommState(hDev, &dcb))
+			{
+				errno = EIO;
+				return -1;
+			}
+#endif // ENABLE_O_NDELAY_WORKAROUND
+			// Change timeout settings.
 			timeouts.ReadIntervalTimeout = MAXDWORD;
 			timeouts.ReadTotalTimeoutConstant = 0;
 			timeouts.ReadTotalTimeoutMultiplier = 0;
@@ -109,11 +149,45 @@ __inline int fcntl(int __fd, int __cmd, ...)
 		}
 		else
 		{
+			// Disable if XON/XOFF are necessary, enable if fcntl() is used together with O_NDELAY and timeouts...
+#ifdef ENABLE_O_NDELAY_WORKAROUND
+			// Should restore original timeout values...
+
+			memset(&dcb, 0, sizeof(DCB));
+			if (!GetCommState(hDev, &dcb))
+			{
+				errno = EIO;
+				return -1;
+			}
+
+			// Warning : XoffLim and XonLim are just used as placeholders to save the original timeouts settings, 
+			// they are not normally related to timeouts...
+
+			if ((dcb.XoffLim>>8) == 255) timeouts.ReadIntervalTimeout = MAXDWORD;
+			else timeouts.ReadIntervalTimeout = (dcb.XoffLim>>8)*100;
+			if ((dcb.XoffLim&0x00FF) == 255) timeouts.ReadTotalTimeoutConstant = MAXDWORD;
+			else timeouts.ReadTotalTimeoutConstant = (dcb.XoffLim&0x00FF)*100;
+			if ((dcb.XonLim>>8) == 255) timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
+			else timeouts.ReadTotalTimeoutMultiplier = (dcb.XonLim>>8)*100;
+			if ((dcb.XonLim&0x00FF) == 255) timeouts.WriteTotalTimeoutConstant = MAXDWORD;
+			else timeouts.WriteTotalTimeoutConstant = (dcb.XonLim&0x00FF)*100;
+			timeouts.WriteTotalTimeoutMultiplier = 0;
+			// Set to full blocking in case the restored values were non-blocking.
+			if ((timeouts.ReadIntervalTimeout == MAXDWORD)&&(timeouts.ReadTotalTimeoutConstant == 0)&&(timeouts.ReadTotalTimeoutMultiplier == 0))
+			{
+				timeouts.ReadIntervalTimeout = 0;
+				timeouts.ReadTotalTimeoutConstant = 0;
+				timeouts.ReadTotalTimeoutMultiplier = 0;
+				timeouts.WriteTotalTimeoutConstant = 0;
+				timeouts.WriteTotalTimeoutMultiplier = 0;
+			}
+#else
 			timeouts.ReadIntervalTimeout = 0;
 			timeouts.ReadTotalTimeoutConstant = 0;
 			timeouts.ReadTotalTimeoutMultiplier = 0;
 			timeouts.WriteTotalTimeoutConstant = 0;
 			timeouts.WriteTotalTimeoutMultiplier = 0;
+#endif // ENABLE_O_NDELAY_WORKAROUND
 			if (!SetCommTimeouts(hDev, &timeouts))
 			{
 				errno = EIO;

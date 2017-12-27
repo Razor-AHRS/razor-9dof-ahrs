@@ -135,7 +135,6 @@ __inline int tcgetattr(int __fd, struct termios *__termios_p)
 
 //#pragma region TIMEOUTS
 	memset(&timeouts, 0, sizeof(COMMTIMEOUTS));
-
 	if (!GetCommTimeouts(hDev, &timeouts))
 	{
 		errno = EIO;
@@ -195,7 +194,6 @@ __inline int tcgetattr(int __fd, struct termios *__termios_p)
 
 //#pragma region DCB
 	memset(&dcb, 0, sizeof(DCB));
-
 	if (!GetCommState(hDev, &dcb))
 	{
 		errno = EIO;
@@ -381,12 +379,20 @@ __inline int tcsetattr(int __fd, int __optional_actions, const struct termios *_
 {
 	HANDLE hDev = (HANDLE)(intptr_t)__fd;
 	COMMTIMEOUTS timeouts;
+#ifdef ENABLE_O_NDELAY_WORKAROUND
+	DWORD ReadIntervalTimeout = 0, ReadTotalTimeoutConstant = 0, ReadTotalTimeoutMultiplier = 0, WriteTotalTimeoutConstant = 0;
+#endif // ENABLE_O_NDELAY_WORKAROUND
 	DCB dcb;
 
 	UNREFERENCED_PARAMETER(__optional_actions);
 
 //#pragma region TIMEOUTS
 	memset(&timeouts, 0, sizeof(COMMTIMEOUTS));
+	if (!GetCommTimeouts(hDev, &timeouts))
+	{
+		errno = EIO;
+		return -1;
+	}
 
 	if ((__termios_p->c_cc[VMIN] == 0)&&(__termios_p->c_cc[VTIME]) == 0)
 	{
@@ -438,6 +444,41 @@ __inline int tcsetattr(int __fd, int __optional_actions, const struct termios *_
 		timeouts.WriteTotalTimeoutConstant = 0; // ???
 	}
 
+	// Disable if XON/XOFF are necessary, enable if fcntl() is used together with O_NDELAY and timeouts...
+#ifdef ENABLE_O_NDELAY_WORKAROUND
+	// Need to save the original timeouts settings for next calls of fcntl()...
+
+	memset(&dcb, 0, sizeof(DCB));
+	if (!GetCommState(hDev, &dcb))
+	{
+		errno = EIO;
+		return -1;
+	}
+
+	// Warning : XoffLim and XonLim are just used as placeholders to save the original timeouts settings, 
+	// they are not normally related to timeouts...
+
+	ReadIntervalTimeout = timeouts.ReadIntervalTimeout;
+	ReadTotalTimeoutConstant = timeouts.ReadTotalTimeoutConstant;
+	ReadTotalTimeoutMultiplier = timeouts.ReadTotalTimeoutMultiplier;
+	WriteTotalTimeoutConstant = timeouts.WriteTotalTimeoutConstant;
+	if (ReadIntervalTimeout == MAXDWORD) ReadIntervalTimeout = 255*100;
+	else if (ReadIntervalTimeout/100 > 254) ReadIntervalTimeout = 254*100;
+	if (ReadTotalTimeoutConstant == MAXDWORD) ReadTotalTimeoutConstant = 255*100;
+	else if (ReadTotalTimeoutConstant/100 > 254) ReadTotalTimeoutConstant = 254*100;
+	if (ReadTotalTimeoutMultiplier == MAXDWORD) ReadTotalTimeoutMultiplier = 255*100;
+	else if (ReadTotalTimeoutMultiplier/100 > 254) ReadTotalTimeoutMultiplier = 254*100;
+	if (WriteTotalTimeoutConstant == MAXDWORD) WriteTotalTimeoutConstant = 255*100;
+	else if (WriteTotalTimeoutConstant/100 > 254) WriteTotalTimeoutConstant = 254*100;
+	dcb.XoffLim = (WORD)(((ReadIntervalTimeout/100)<<8)|(ReadTotalTimeoutConstant/100));
+	dcb.XonLim = (WORD)(((ReadTotalTimeoutMultiplier/100)<<8)|(WriteTotalTimeoutConstant/100));
+	if (!SetCommState(hDev, &dcb))
+	{
+		errno = EIO;
+		return -1;
+	}
+#endif // ENABLE_O_NDELAY_WORKAROUND
+
 	if (!SetCommTimeouts(hDev, &timeouts))
 	{
 		errno = EIO;
@@ -447,6 +488,11 @@ __inline int tcsetattr(int __fd, int __optional_actions, const struct termios *_
 
 //#pragma region DCB
 	memset(&dcb, 0, sizeof(DCB));
+	if (!GetCommState(hDev, &dcb))
+	{
+		errno = EIO;
+		return -1;
+	}
 
 	// Not possible to have different c_ispeed and c_ospeed on Windows...
 	dcb.BaudRate = _linuxbaudrate2windows(__termios_p->c_ispeed);
