@@ -28,7 +28,7 @@ Run `Processing/Razor_AHRS_test/Razor_AHRS_test.pde` using *Processing*.
 
 ### Optional: Mac OS X / Unix / Linux / Windows C++ Interface
 
-Use the provided Qt project (check Projects\Run Settings\Run in terminal to force your application to run inside a separate terminal) or compile test program from the command line (add `-Iunix_adapt -DDISABLE_TIMEZONE_STRUCT_REDEFINITION -DENABLE_O_NDELAY_WORKAROUND` for MinGW/MSYS):
+Use the provided Qt project (check `Projects` → `Run Settings` → `Run in terminal` to force your application to run inside a separate terminal) or compile test program from the command line (add `-Iunix_adapt -DDISABLE_TIMEZONE_STRUCT_REDEFINITION -DENABLE_O_NDELAY_WORKAROUND` for MinGW/MSYS):
 
     g++ Example.cpp RazorAHRS.cpp -Wall -D_REENTRANT -lpthread -o example
 
