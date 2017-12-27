@@ -35,7 +35,7 @@ Run it:
 
     ./example
 
-Note: To use the provided Visual Studio 2017 project, you will need to install Pthreads-win32 2.9.1 from http://www.ensta-bretagne.fr/lebars/Share/pthreads-win32-msvc.zip (only in 32 bit).
+Note: To use the provided Visual Studio 2017 project, you will need to install Pthreads-win32 from http://www.ensta-bretagne.fr/lebars/Share/pthreads-win32-msvc.zip.
 
 ### Optional: Android Interface
 

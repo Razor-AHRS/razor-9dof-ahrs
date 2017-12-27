@@ -79,7 +79,7 @@
 // Very limited implementation...
 __inline int fcntl(int __fd, int __cmd, ...)
 {
-	HANDLE hDev = (HANDLE)__fd;
+	HANDLE hDev = (HANDLE)(intptr_t)__fd;
 	COMMTIMEOUTS timeouts;
 	va_list argptr;
 	va_start(argptr, __cmd);
@@ -210,7 +210,7 @@ __inline int open_linux(const char *__path, int __oflag, ...)
 	//}
 	//#endif // DISABLE_FORCE_CLEAR_DTR
 
-	fd = (intptr_t)hDev;
+	fd = (int)(intptr_t)hDev;
 
 	return fd;
 }

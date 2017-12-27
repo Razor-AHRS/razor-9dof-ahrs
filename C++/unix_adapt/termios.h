@@ -94,30 +94,30 @@ inline speed_t _windowsbaudrate2linux(UINT BaudRate)
 	}
 }
 
-__inline speed_t cfgetospeed(const struct termios *__termios_p) 
+__inline speed_t cfgetospeed(const struct termios *__termios_p)
 {
 	return __termios_p->c_ospeed;
 }
 
-__inline speed_t cfgetispeed (const struct termios *__termios_p) 
+__inline speed_t cfgetispeed(const struct termios *__termios_p)
 {
 	return __termios_p->c_ispeed;
 }
 
-__inline int cfsetospeed (struct termios *__termios_p, speed_t __speed) 
+__inline int cfsetospeed(struct termios *__termios_p, speed_t __speed)
 {
 	__termios_p->c_ospeed = __speed;
 	return 0;
 }
 
-__inline int cfsetispeed (struct termios *__termios_p, speed_t __speed) 
+__inline int cfsetispeed(struct termios *__termios_p, speed_t __speed)
 {
 	__termios_p->c_ispeed = __speed;
 	return 0;
 }
 
 #ifdef	__USE_MISC
-__inline int cfsetspeed (struct termios *__termios_p, speed_t __speed) 
+__inline int cfsetspeed(struct termios *__termios_p, speed_t __speed)
 {
 	__termios_p->c_ispeed = __speed;
 	__termios_p->c_ospeed = __speed;
@@ -126,9 +126,9 @@ __inline int cfsetspeed (struct termios *__termios_p, speed_t __speed)
 #endif
 
 /* Put the state of FD into *TERMIOS_P.  */
-__inline int tcgetattr (int __fd, struct termios *__termios_p) 
+__inline int tcgetattr(int __fd, struct termios *__termios_p)
 {
-	HANDLE hDev = (HANDLE)__fd;
+	HANDLE hDev = (HANDLE)(intptr_t)__fd;
 	COMMTIMEOUTS timeouts;
 	DCB dcb;
 	speed_t speed = 0;
@@ -377,9 +377,9 @@ __inline int tcgetattr (int __fd, struct termios *__termios_p)
 
 /* Set the state of FD to *TERMIOS_P.
    Values for OPTIONAL_ACTIONS (TCSA*) are in <bits/termios.h>.  */
-__inline int tcsetattr (int __fd, int __optional_actions, const struct termios *__termios_p) 
+__inline int tcsetattr(int __fd, int __optional_actions, const struct termios *__termios_p)
 {
-	HANDLE hDev = (HANDLE)__fd;
+	HANDLE hDev = (HANDLE)(intptr_t)__fd;
 	COMMTIMEOUTS timeouts;
 	DCB dcb;
 
