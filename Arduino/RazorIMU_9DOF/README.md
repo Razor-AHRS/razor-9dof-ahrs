@@ -9,7 +9,6 @@ It is suggested that you download the entire repository and then select this fol
 ```
 git clone https://github.com/shashank3199/RazorIMU_9DOF
 ```
-_You might want to omit the `-b <branch>` tag if you're downloading from the master branch_.
 
 **Not recommended**: You can download _only_ this folder by clicking [here](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/shashank3199/RazorIMU_9DOF)
 
@@ -88,4 +87,4 @@ Let's explore the class now
 - **<font color="#CD00FF">float</font> GetPitch()**: To get the continuous PITCH values.
 - **<font color="#CD00FF">float</font> GetYaw()**: To get the continuous YAW values.
 
-![Developers Tag](https://img.shields.io/badge/Developer-shashank3199-red.svg)
+[![Developers Tag](https://img.shields.io/badge/Developer-shashank3199-red.svg)](https://github.com/shashank3199)
