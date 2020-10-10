@@ -221,6 +221,7 @@
 #if HW__VERSION_CODE == 14001
 // Set your port used to send out data here!
 #define LOG_PORT SERIAL_PORT_USBVIRTUAL
+//#define LOG_PORT SERIAL_PORT_HARDWARE
 #else
 // Set your port used to send out data here!
 #define LOG_PORT Serial
