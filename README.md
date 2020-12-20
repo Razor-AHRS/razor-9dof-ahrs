@@ -1,9 +1,9 @@
 Razor AHRS
 ---
 
-**9 Degree of Measurement Attitude and Heading Reference System** for Sparkfun *9DOF Razor IMU* (SEN-10125, SEN-10736 and SEN-14001) and SparkFun *9DOF Sensor Stick* (SEN-10183, SEN-10321 and SEN-10724)
+**9 Degree of Measurement Attitude and Heading Reference System** for Sparkfun *OpenLog Artemis* (DEV-16832), *9DoF Razor IMU M0* (SEN-14001), *9DOF Razor IMU* (SEN-10125 and SEN-10736) and *9DOF Sensor Stick* (SEN-10183, SEN-10321 and SEN-10724)
 
-Infos, updates, bug reports, contributions and feedback: https://github.com/ptrbrtz/razor-9dof-ahrs
+Original repository : https://github.com/ptrbrtz/razor-9dof-ahrs
 
 Download
 ---
@@ -13,9 +13,9 @@ Clone the [repository on GitHub](https://github.com/lebarsfa/razor-9dof-ahrs) or
 Tutorial
 ---
 
-You find a [detailed tutorial in the Wiki](https://github.com/ptrbrtz/razor-9dof-ahrs/wiki/Tutorial).  
+You find a [detailed tutorial in the original Wiki](https://github.com/ptrbrtz/razor-9dof-ahrs/wiki/Tutorial).  
 
-Note: For SEN-14001 (*9DoF Razor IMU M0*), you will need to follow the same instructions as for the default firmware on https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide and use an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library (an updated version of the default firmware is also available on https://github.com/lebarsfa/9DOF_Razor_IMU).
+Note: For DEV-16832 (*OpenLog Artemis*), you will need to follow the same instructions as for the `OLA_IMU_Basics.ino` sample from https://github.com/sparkfun/OpenLog_Artemis (i.e. get the drivers from https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers, install SparkFun Apollo3 boards in Arduino IDE as in https://learn.sparkfun.com/tutorials/installing-board-definitions-in-the-arduino-ide and ensure you select `SparkFun Apollo3` → `SparkFun RedBoard Artemis ATP` as the board and install SparkFun ICM 20948 IMU Arduino library as in https://learn.sparkfun.com/tutorials/installing-an-arduino-library). For SEN-14001 (*9DoF Razor IMU M0*), you will need to follow the same instructions as for the default firmware on https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide and use an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library (an updated version of the default firmware is also available on https://github.com/lebarsfa/9DOF_Razor_IMU).
 
 Quick setup
 ---
@@ -28,7 +28,7 @@ Run `Processing/Razor_AHRS_test/Razor_AHRS_test.pde` using *Processing*.
 
 ### Optional: Mac OS X / Unix / Linux / Windows C++ Interface
 
-Use the provided Qt project (check `Projects` → `Run Settings` → `Run in terminal` to force your application to run inside a separate terminal) or compile test program from the command line (add `-Iunix_adapt -DDISABLE_TIMEZONE_STRUCT_REDEFINITION -DENABLE_O_NDELAY_WORKAROUND` for MinGW/MSYS):
+Use the provided *Qt Creator* project (check `Projects` → `Run Settings` → `Run in terminal` to force your application to run inside a separate terminal) or compile test program from the command line (add `-Iunix_adapt -DDISABLE_TIMEZONE_STRUCT_REDEFINITION -DENABLE_O_NDELAY_WORKAROUND` for MinGW/MSYS):
 
     g++ Example.cpp RazorAHRS.cpp -Wall -D_REENTRANT -lpthread -o example
 
@@ -36,7 +36,7 @@ Run it:
 
     ./example
 
-Note: To use the provided Visual Studio 2017 project, you will need to install Pthreads-win32 from http://www.ensta-bretagne.fr/lebars/Share/pthreads-win32-msvc.zip.
+Note: To use the provided *Visual Studio 2017* project, you will need to install Pthreads-win32 from http://www.ensta-bretagne.fr/lebars/Share/pthreads-win32-msvc.zip.
 
 ### Optional: Android Interface
 

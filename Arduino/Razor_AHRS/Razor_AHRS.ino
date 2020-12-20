@@ -1,14 +1,14 @@
 /***************************************************************************************************************
 * Razor AHRS Firmware
 * 9 Degree of Measurement Attitude and Heading Reference System
-* for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
-* and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
+* for Sparkfun "OpenLog Artemis" (DEV-16832), "9DoF Razor IMU M0" (SEN-14001), 
+* "9DOF Razor IMU" (SEN-10125 and SEN-10736) and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
 *
 * Released under GNU GPL (General Public License) v3.0
 * Copyright (C) 2013 Peter Bartz [http://ptrbrtz.net]
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 *
-* Infos, updates, bug reports, contributions and feedback:
+* Original repository:
 *     https://github.com/ptrbrtz/razor-9dof-ahrs
 *
 *
@@ -44,7 +44,7 @@
 *       * Added static magnetometer soft iron distortion compensation.
 *     * v1.4.2
 *       * (No core firmware changes)
-*     * v1.5
+*     * v1.5.0
 *       * Added support for "9DoF Razor IMU M0": SEN-14001.
 *     * v1.5.1
 *       * Added ROS-compatible output mode.
@@ -64,6 +64,9 @@
 *       * Increased startup delay to try to get a correct initial orientation for the M0.
 *     * v1.5.7
 *       * Calibration data are now also used to compute the initial orientation.
+*     * v1.6.0
+*       * Added support for "OpenLog Artemis": DEV-16832. See OLA_IMU_Basics.ino sample from https://github.com/sparkfun/OpenLog_Artemis.
+*       * Added a command to toggle the status LED.
 *
 * TODOs:
 *   * Allow optional use of Flash/EEPROM for storing and reading calibration values.
@@ -71,12 +74,19 @@
 ***************************************************************************************************************/
 
 /*
+  "OpenLog Artemis" hardware versions: DEV-16832
+
+  Arduino IDE : Follow the same instructions as for the default firmware on 
+  https://github.com/sparkfun/OpenLog_Artemis/blob/master/Firmware/Test%20Sketches/OLA_IMU_Basics/OLA_IMU_Basics.ino
+*/
+
+/*
   "9DoF Razor IMU M0" hardware versions: SEN-14001
 
   Arduino IDE : Follow the same instructions as for the default firmware on 
   https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide 
   and use an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from 
-  https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library"
+  https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library
 */
 
 /*
@@ -102,8 +112,8 @@
 */
 
 /*
-  Axis definition (differs from definition printed on the board!):
-    X axis pointing forward (towards the short edge with the connector holes)
+  Axis definition (differs from definition printed on the board, see also https://github.com/Razor-AHRS/razor-9dof-ahrs/issues/57#issuecomment-378585065!):
+    X axis pointing forward (towards where "sparkfun" is written for DEV-16832 and SEN-14001, the short edge with the connector holes for SEN-10125 and SEN-10736)
     Y axis pointing to the right
     and Z axis pointing down.
     
@@ -174,6 +184,9 @@
   "#I" - Toggle INERTIAL-only mode for yaw computation.
 
 
+  "#L" - Toggle status LED.
+
+
   "#f" - Request one output frame - useful when continuous output is disabled and updates are
          required in larger intervals only. Though #f only requests one reply, replies are still
          bound to the internal 20ms (50Hz) time raster. So worst case delay that #f can add is 19.99ms.
@@ -192,7 +205,7 @@
   would set binary output mode, enable continuous streaming output and request
   a synch token all at once.
   
-  The status LED will be on if streaming output is enabled and off otherwise.
+  The status LED will be on if streaming output is enabled and off otherwise, unless "#L" is sent.
   
   Byte order of binary output is little-endian: least significant byte comes first.
 */
@@ -209,6 +222,7 @@
 //#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
 //#define HW__VERSION_CODE 14001 // SparkFun "9DoF Razor IMU M0" version "SEN-14001"
+//#define HW__VERSION_CODE 16832 // SparkFun "OpenLog Artemis" version "DEV-16832"
 //#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10724 // SparkFun "9DOF Sensor Stick" version "SEN-10724" (HMC5883L magnetometer)
@@ -218,12 +232,16 @@
 /*****************************************************************/
 // Set your serial port baud rate used to send out data here!
 #define OUTPUT__BAUD_RATE 57600
-#if HW__VERSION_CODE == 14001
 // Set your port used to send out data here!
+#if HW__VERSION_CODE == 16832
+#define LOG_PORT Serial
+//#define LOG_PORT Serial1
+//Uart SerialLog(1, 13, 12); // Declares a Uart object called Serial1 using instance 1 of Apollo3 UART peripherals with RX on pin 13 and TX on pin 12 (note, you specify *pins* not Apollo3 pads. This uses the variant's pin map to determine the Apollo3 pad)
+//#define LOG_PORT SerialLog
+#elif HW__VERSION_CODE == 14001
 #define LOG_PORT SERIAL_PORT_USBVIRTUAL
 //#define LOG_PORT SERIAL_PORT_HARDWARE
 #else
-// Set your port used to send out data here!
 #define LOG_PORT Serial
 #endif // HW__VERSION_CODE
 
@@ -268,7 +286,7 @@ boolean output_errors = false;  // true or false
 
 // SENSOR CALIBRATION
 /*****************************************************************/
-// How to calibrate? Read the tutorial at http://dev.qu.tu-berlin.de/projects/sf-razor-9dof-ahrs
+// How to calibrate? Read the tutorial at https://github.com/ptrbrtz/razor-9dof-ahrs/wiki/Tutorial
 // Put MIN/MAX and OFFSET readings for your board here!
 // For the M0, only the extended magnetometer calibration seems to be really necessary if DEBUG__USE_DMP_M0 is set to true...
 // Accelerometer
@@ -383,7 +401,34 @@ boolean DEBUG__NO_DRIFT_CORRECTION = false;
   #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.ino!
 #endif
 
-#if HW__VERSION_CODE == 14001
+#if HW__VERSION_CODE == 16832
+// OLA Specifics:
+const byte PIN_IMU_POWER = 27; // The Red SparkFun version of the OLA (V10) uses pin 27
+//const byte PIN_IMU_POWER = 22; // The Black SparkX version of the OLA (X04) uses pin 22
+const byte PIN_IMU_INT = 37;
+const byte PIN_IMU_CHIP_SELECT = 44;
+// For low power...
+const byte PIN_QWIIC_POWER = 18;
+const byte PIN_MICROSD_POWER = 15; //x04
+
+#include "ICM_20948.h"  // Click here to get the library: http://librarymanager/All#SparkFun_ICM_20948_IMU
+
+#define USE_SPI       // Uncomment this to use SPI
+
+#define SPI_PORT SPI    // Your desired SPI port.       Used only when "USE_SPI" is defined
+#define CS_PIN PIN_IMU_CHIP_SELECT // Which pin you connect CS to. Used only when "USE_SPI" is defined. OLA uses pin 44.
+
+#define WIRE_PORT Wire  // Your desired Wire port.      Used when "USE_SPI" is not defined
+#define AD0_VAL   1     // The value of the last bit of the I2C address. 
+                        // On the SparkFun 9DoF IMU breakout the default is 1, and when 
+                        // the ADR jumper is closed the value becomes 0
+
+#ifdef USE_SPI
+  ICM_20948_SPI myICM;  // If using SPI create an ICM_20948_SPI object
+#else
+  ICM_20948_I2C myICM;  // Otherwise create an ICM_20948_I2C object
+#endif
+#elif HW__VERSION_CODE == 14001
 // MPU-9250 Digital Motion Processing (DMP) Library
 #include <SparkFunMPU9250-DMP.h>
 
@@ -431,7 +476,7 @@ float MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
 
 
 
-#if HW__VERSION_CODE == 14001
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
 #define GYRO_SCALED_RAD(x) (x) // Calculate the scaled gyro readings in radians per second
 #else
 // Gain for gyroscope (ITG-3200)
@@ -445,8 +490,13 @@ float MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
 #define Kp_YAW 1.2f
 #define Ki_YAW 0.00002f
 
-// Stuff
-#define STATUS_LED_PIN 13  // Pin number of status LED
+// Pin number of status LED
+#if (HW__VERSION_CODE == 16832)
+#define STATUS_LED_PIN 19
+#else
+#define STATUS_LED_PIN 13
+#endif // HW__VERSION_CODE
+
 #define TO_RAD(x) (x * 0.01745329252)  // *pi/180
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
@@ -499,7 +549,7 @@ int num_gyro_errors = 0;
 int num_math_errors = 0;
 
 void read_sensors() {
-#if HW__VERSION_CODE == 14001
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
   loop_imu();
 #else
   Read_Gyro(); // Read gyroscope
@@ -639,12 +689,8 @@ void setup()
 
   // Init sensors
   delay(50);  // Give sensors enough time to start
-#if HW__VERSION_CODE == 14001
-#if DEBUG__ENABLE_INTERRUPT_M0 == true
-  // Set up MPU-9250 interrupt input (active-low)
-  pinMode(MPU9250_INT_PIN, INPUT_PULLUP);
-#endif // DEBUG__ENABLE_INTERRUPT_M0
-  initIMU();
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
+  beginIMU();
 #else
   I2C_Init();
   Accel_Init();
@@ -653,7 +699,7 @@ void setup()
 #endif // HW__VERSION_CODE
   
   // Read sensors, init DCM algorithm
-#if HW__VERSION_CODE == 14001
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
   delay(400);  // Give sensors enough time to collect data
 #else
   delay(20);  // Give sensors enough time to collect data
@@ -943,6 +989,10 @@ void loop()
 		initialmagyaw = -MAG_Heading;
 		initialimuyaw = imu.yaw*PI/180.0f;
 #endif // DEBUG__USE_ONLY_DMP_M0
+	  }
+	  else if (command == 'L') // Toggle status _L_ed
+	  {
+	    if (digitalRead(STATUS_LED_PIN) == HIGH) digitalWrite(STATUS_LED_PIN, LOW); else digitalWrite(STATUS_LED_PIN, HIGH);
 	  }
 #if OUTPUT__HAS_RN_BLUETOOTH == true
       // Read messages from bluetooth module

@@ -1,6 +1,197 @@
 /* This file is part of the Razor AHRS Firmware */
 
-#if HW__VERSION_CODE == 14001
+#if HW__VERSION_CODE == 16832
+bool imuAccDLPF = true; // IMU accelerometer Digital Low Pass Filter.
+bool imuGyroDLPF = true; // IMU gyro Digital Low Pass Filter.
+// IMU accelerometer full scale (ICM_20948_ACCEL_CONFIG_FS_SEL_e)
+// 0: +/- 2g
+// 1: +/- 4g
+// 2: +/- 8g
+// 3: +/- 16g
+int imuAccFSS = gpm16;
+// IMU accelerometer DLPF bandwidth (ICM_20948_ACCEL_CONFIG_DLPCFG_e)
+// 0: 246.0 (3dB)  265.0 (Nyquist) (Hz)
+// 1: 246.0 (3dB)  265.0 (Nyquist) (Hz)
+// 2: 111.4 (3dB)  136.0 (Nyquist) (Hz)
+// 3: 50.4  (3dB)  68.8  (Nyquist) (Hz)
+// 4: 23.9  (3dB)  34.4  (Nyquist) (Hz)
+// 5: 11.5  (3dB)  17.0  (Nyquist) (Hz)
+// 6: 5.7   (3dB)  8.3   (Nyquist) (Hz)
+// 7: 473   (3dB)  499   (Nyquist) (Hz)
+int imuAccDLPFBW = 6;//acc_d50bw4_n68bw8;
+// IMU gyro full scale (ICM_20948_GYRO_CONFIG_1_FS_SEL_e)
+// 0: +/- 250dps
+// 1: +/- 500dps
+// 2: +/- 1000dps
+// 3: +/- 2000dps
+int imuGyroFSS = dps2000;
+// IMU gyro DLPF bandwidth (ICM_20948_GYRO_CONFIG_1_DLPCFG_e)
+// 0: 196.6 (3dB)  229.8 (Nyquist) (Hz)
+// 1: 151.8 (3dB)  187.6 (Nyquist) (Hz)
+// 2: 119.5 (3dB)  154.3 (Nyquist) (Hz)
+// 3: 51.2  (3dB)  73.3  (Nyquist) (Hz)
+// 4: 23.9  (3dB)  35.9  (Nyquist) (Hz)
+// 5: 11.6  (3dB)  17.8  (Nyquist) (Hz)
+// 6: 5.7   (3dB)  8.9   (Nyquist) (Hz)
+// 7: 361.4 (3dB)  376.5 (Nyquist) (Hz)
+int imuGyroDLPFBW = 6;//gyr_d51bw2_n73bw3;
+
+void qwiicPowerOn()
+{
+	pinMode(PIN_QWIIC_POWER, OUTPUT);
+	digitalWrite(PIN_QWIIC_POWER, LOW);
+}
+
+void qwiicPowerOff()
+{
+	pinMode(PIN_QWIIC_POWER, OUTPUT);
+	digitalWrite(PIN_QWIIC_POWER, HIGH);
+}
+
+void microSDPowerOn()
+{
+	pinMode(PIN_MICROSD_POWER, OUTPUT);
+	digitalWrite(PIN_MICROSD_POWER, LOW);
+}
+
+void microSDPowerOff()
+{
+	pinMode(PIN_MICROSD_POWER, OUTPUT);
+	digitalWrite(PIN_MICROSD_POWER, HIGH);
+}
+
+void imuPowerOn()
+{
+	pinMode(PIN_IMU_POWER, OUTPUT);
+	digitalWrite(PIN_IMU_POWER, HIGH);
+}
+
+void imuPowerOff()
+{
+	pinMode(PIN_IMU_POWER, OUTPUT);
+	digitalWrite(PIN_IMU_POWER, LOW);
+}
+
+bool enableCIPOpullUp()
+{
+	//Add CIPO pull-up
+	ap3_err_t retval = AP3_OK;
+	am_hal_gpio_pincfg_t cipoPinCfg = AP3_GPIO_DEFAULT_PINCFG;
+	cipoPinCfg.uFuncSel = AM_HAL_PIN_6_M0MISO;
+	cipoPinCfg.eDriveStrength = AM_HAL_GPIO_PIN_DRIVESTRENGTH_12MA;
+	cipoPinCfg.eGPOutcfg = AM_HAL_GPIO_PIN_OUTCFG_PUSHPULL;
+	cipoPinCfg.uIOMnum = AP3_SPI_IOM;
+	cipoPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_1_5K;
+	padMode(MISO, cipoPinCfg, &retval);
+	return (retval == AP3_OK);
+}
+
+bool beginIMU(void)
+{
+	// For low power...
+	power_adc_disable(); // Power down ADC. It it started by default before setup().
+	//Disable all pads
+	//for (int x = 0; x < 50; x++)
+	//	am_hal_gpio_pinconfig(x, g_AM_HAL_GPIO_DISABLE);
+	pinMode(PIN_QWIIC_POWER, OUTPUT);
+	pinMode(PIN_MICROSD_POWER, OUTPUT);
+	qwiicPowerOff();
+	microSDPowerOff();
+
+#ifdef USE_SPI
+	SPI_PORT.begin();
+#else
+	WIRE_PORT.begin();
+	WIRE_PORT.setClock(400000);
+#endif
+
+	enableCIPOpullUp(); // Enable CIPO pull-up on the OLA
+
+	pinMode(PIN_IMU_CHIP_SELECT, OUTPUT);
+	digitalWrite(PIN_IMU_CHIP_SELECT, HIGH); //Be sure IMU is deselected
+
+	//Reset ICM by power cycling it
+	imuPowerOff();
+
+	delay(10);
+
+	imuPowerOn(); // Enable power for the OLA IMU
+
+	delay(100); // Wait for the IMU to power up
+
+	bool initialized = false;
+	while (!initialized) {
+#ifdef USE_SPI
+		myICM.begin(CS_PIN, SPI_PORT);
+#else
+		myICM.begin(WIRE_PORT, AD0_VAL);
+#endif
+		if (myICM.status != ICM_20948_Stat_Ok) {
+			if (output_errors) LOG_PORT.println("!ERR: initializing ICM");
+			delay(500);
+		}
+		else {
+			initialized = true;
+		}
+	}
+
+	delay(25); // See https://github.com/sparkfun/OpenLog_Artemis/issues/18...
+
+	if (myICM.enableDLPF(ICM_20948_Internal_Acc, imuAccDLPF) != ICM_20948_Stat_Ok)
+	{
+		if (output_errors) LOG_PORT.println("!ERR: configuring DLPF");
+	}
+	if (myICM.enableDLPF(ICM_20948_Internal_Gyr, imuGyroDLPF) != ICM_20948_Stat_Ok)
+	{
+		if (output_errors) LOG_PORT.println("!ERR: configuring DLPF");
+	}
+	ICM_20948_dlpcfg_t dlpcfg;
+	dlpcfg.a = imuAccDLPFBW;
+	dlpcfg.g = imuGyroDLPFBW;
+	if (myICM.setDLPFcfg((ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), dlpcfg) != ICM_20948_Stat_Ok)
+	{
+		if (output_errors) LOG_PORT.println("!ERR: configuring DLPFBW");
+	}
+	ICM_20948_fss_t FSS;
+	FSS.a = imuAccFSS;
+	FSS.g = imuGyroFSS;
+	if (myICM.setFullScale((ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), FSS) != ICM_20948_Stat_Ok)
+	{
+		if (output_errors) LOG_PORT.println("!ERR: configuring FSS");
+	}
+
+	return true;
+}
+
+void loop_imu()
+{
+	if (!myICM.dataReady())
+	{
+		num_accel_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading accelerometer");
+		num_gyro_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading gyroscope");
+		num_magn_errors++;
+		if (output_errors) LOG_PORT.println("!ERR: reading magnetometer");
+		return;
+	}
+
+	myICM.getAGMT(); // The values are only updated when you call 'getAGMT'
+
+	// Conversion from g to similar unit as older versions of Razor...
+	accel[0] = 250.0f*myICM.accY()/1000.0;
+	accel[1] = 250.0f*myICM.accX()/1000.0;
+	accel[2] = 250.0f*myICM.accZ()/1000.0;
+	// Conversion from degrees/s to rad/s.
+	gyro[0] = -myICM.gyrY()*PI/180.0f;
+	gyro[1] = -myICM.gyrX()*PI/180.0f;
+	gyro[2] = -myICM.gyrZ()*PI/180.0f;
+	// Conversion from uT to mGauss.
+	magnetom[0] = (10.0f*myICM.magY());
+	magnetom[1] = (-10.0f*myICM.magX());
+	magnetom[2] = (10.0f*myICM.magZ());
+}
+#elif HW__VERSION_CODE == 14001
 /*
 * Known Bug -
 * DMP when enabled will sample sensor data at 200Hz and output to FIFO at the rate
@@ -34,8 +225,13 @@ unsigned short accelFSR = IMU_ACCEL_FSR;
 unsigned short gyroFSR = IMU_GYRO_FSR;
 unsigned short fifoRate = DMP_SAMPLE_RATE;
 
-bool initIMU(void)
+bool beginIMU(void)
 {
+#if DEBUG__ENABLE_INTERRUPT_M0 == true
+	// Set up MPU-9250 interrupt input (active-low)
+	pinMode(MPU9250_INT_PIN, INPUT_PULLUP);
+#endif // DEBUG__ENABLE_INTERRUPT_M0
+
 	// imu.begin() should return 0 on success. Will initialize
 	// I2C bus, and reset MPU-9250 to defaults.
 	if (imu.begin() != INV_SUCCESS)
