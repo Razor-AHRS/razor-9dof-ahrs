@@ -1,7 +1,7 @@
 /***************************************************************************************************************
 * Razor AHRS Firmware
 * 9 Degree of Measurement Attitude and Heading Reference System
-* for Sparkfun "OpenLog Artemis" (DEV-16832), "9DoF Razor IMU M0" (SEN-14001), 
+* for Sparkfun "OpenLog Artemis" (SPX-15846 and DEV-16832), "9DoF Razor IMU M0" (SEN-14001), 
 * "9DOF Razor IMU" (SEN-10125 and SEN-10736) and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
 *
 * Released under GNU GPL (General Public License) v3.0
@@ -67,6 +67,8 @@
 *     * v1.6.0
 *       * Added support for "OpenLog Artemis": DEV-16832. See OLA_IMU_Basics.ino sample from https://github.com/sparkfun/OpenLog_Artemis.
 *       * Added a command to toggle the status LED.
+*     * v1.6.1
+*       * Attempt to add support for "OpenLog Artemis": SPX-15846 (retired version, not tested).
 *
 * TODOs:
 *   * Allow optional use of Flash/EEPROM for storing and reading calibration values.
@@ -74,10 +76,11 @@
 ***************************************************************************************************************/
 
 /*
-  "OpenLog Artemis" hardware versions: DEV-16832
+  "OpenLog Artemis" hardware versions: SPX-15846 and DEV-16832
 
-  Arduino IDE : Follow the same instructions as for the default firmware on 
-  https://github.com/sparkfun/OpenLog_Artemis/blob/master/Firmware/Test%20Sketches/OLA_IMU_Basics/OLA_IMU_Basics.ino
+  Arduino IDE : Follow the same instructions as for the OLA_IMU_Basics.ino 
+  sample from https://github.com/sparkfun/OpenLog_Artemis. Select board
+  "SparkFun RedBoard Artemis ATP"
 */
 
 /*
@@ -86,7 +89,8 @@
   Arduino IDE : Follow the same instructions as for the default firmware on 
   https://learn.sparkfun.com/tutorials/9dof-razor-imu-m0-hookup-guide 
   and use an updated version of SparkFun_MPU-9250-DMP_Arduino_Library from 
-  https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library
+  https://github.com/lebarsfa/SparkFun_MPU-9250-DMP_Arduino_Library. Select 
+  board "SparkFun 9DoF Razor IMU M0"
 */
 
 /*
@@ -113,7 +117,7 @@
 
 /*
   Axis definition (differs from definition printed on the board, see also https://github.com/Razor-AHRS/razor-9dof-ahrs/issues/57#issuecomment-378585065!):
-    X axis pointing forward (towards where "sparkfun" is written for DEV-16832 and SEN-14001, the short edge with the connector holes for SEN-10125 and SEN-10736)
+    X axis pointing forward (towards where "sparkfun" is written for SPX-15846, DEV-16832 and SEN-14001, the short edge with the connector holes for SEN-10125 and SEN-10736)
     Y axis pointing to the right
     and Z axis pointing down.
     
@@ -222,6 +226,7 @@
 //#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
 //#define HW__VERSION_CODE 14001 // SparkFun "9DoF Razor IMU M0" version "SEN-14001"
+//#define HW__VERSION_CODE 15846 // SparkFun "OpenLog Artemis" version "SPX-15846"
 //#define HW__VERSION_CODE 16832 // SparkFun "OpenLog Artemis" version "DEV-16832"
 //#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
@@ -233,9 +238,8 @@
 // Set your serial port baud rate used to send out data here!
 #define OUTPUT__BAUD_RATE 57600
 // Set your port used to send out data here!
-#if HW__VERSION_CODE == 16832
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846)
 #define LOG_PORT Serial
-//#define LOG_PORT Serial1
 //Uart SerialLog(1, 13, 12); // Declares a Uart object called Serial1 using instance 1 of Apollo3 UART peripherals with RX on pin 13 and TX on pin 12 (note, you specify *pins* not Apollo3 pads. This uses the variant's pin map to determine the Apollo3 pad)
 //#define LOG_PORT SerialLog
 #elif HW__VERSION_CODE == 14001
@@ -401,10 +405,12 @@ boolean DEBUG__NO_DRIFT_CORRECTION = false;
   #error YOU HAVE TO SELECT THE HARDWARE YOU ARE USING! See "HARDWARE OPTIONS" in "USER SETUP AREA" at top of Razor_AHRS.ino!
 #endif
 
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846)
 #if HW__VERSION_CODE == 16832
-// OLA Specifics:
 const byte PIN_IMU_POWER = 27; // The Red SparkFun version of the OLA (V10) uses pin 27
-//const byte PIN_IMU_POWER = 22; // The Black SparkX version of the OLA (X04) uses pin 22
+#elif HW__VERSION_CODE == 15846
+const byte PIN_IMU_POWER = 22; // The Black SparkX version of the OLA (X04) uses pin 22
+#endif // HW__VERSION_CODE
 const byte PIN_IMU_INT = 37;
 const byte PIN_IMU_CHIP_SELECT = 44;
 // For low power...
@@ -476,7 +482,7 @@ float MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
 
 
 
-#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846) || (HW__VERSION_CODE == 14001)
 #define GYRO_SCALED_RAD(x) (x) // Calculate the scaled gyro readings in radians per second
 #else
 // Gain for gyroscope (ITG-3200)
@@ -491,7 +497,7 @@ float MAGN_Z_SCALE = (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET));
 #define Ki_YAW 0.00002f
 
 // Pin number of status LED
-#if (HW__VERSION_CODE == 16832)
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846)
 #define STATUS_LED_PIN 19
 #else
 #define STATUS_LED_PIN 13
@@ -549,7 +555,7 @@ int num_gyro_errors = 0;
 int num_math_errors = 0;
 
 void read_sensors() {
-#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846) || (HW__VERSION_CODE == 14001)
   loop_imu();
 #else
   Read_Gyro(); // Read gyroscope
@@ -689,7 +695,7 @@ void setup()
 
   // Init sensors
   delay(50);  // Give sensors enough time to start
-#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846) || (HW__VERSION_CODE == 14001)
   beginIMU();
 #else
   I2C_Init();
@@ -699,7 +705,7 @@ void setup()
 #endif // HW__VERSION_CODE
   
   // Read sensors, init DCM algorithm
-#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 14001)
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846) || (HW__VERSION_CODE == 14001)
   delay(400);  // Give sensors enough time to collect data
 #else
   delay(20);  // Give sensors enough time to collect data

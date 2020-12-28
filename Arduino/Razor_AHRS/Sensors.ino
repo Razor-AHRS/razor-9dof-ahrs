@@ -1,6 +1,6 @@
 /* This file is part of the Razor AHRS Firmware */
 
-#if HW__VERSION_CODE == 16832
+#if (HW__VERSION_CODE == 16832) || (HW__VERSION_CODE == 15846)
 bool imuAccDLPF = true; // IMU accelerometer Digital Low Pass Filter.
 bool imuGyroDLPF = true; // IMU gyro Digital Low Pass Filter.
 // IMU accelerometer full scale (ICM_20948_ACCEL_CONFIG_FS_SEL_e)
@@ -93,8 +93,6 @@ bool beginIMU(void)
 	//Disable all pads
 	//for (int x = 0; x < 50; x++)
 	//	am_hal_gpio_pinconfig(x, g_AM_HAL_GPIO_DISABLE);
-	pinMode(PIN_QWIIC_POWER, OUTPUT);
-	pinMode(PIN_MICROSD_POWER, OUTPUT);
 	qwiicPowerOff();
 	microSDPowerOff();
 
