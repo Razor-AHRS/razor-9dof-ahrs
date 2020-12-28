@@ -1,10 +1,10 @@
 /******************************************************************************************
-* Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.2
+* Mac OSX / Unix / Linux / Windows C++ Interface for Razor AHRS
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
 * Released under GNU GPL (General Public License) v3.0
-* Copyright (C) 2013 Peter Bartz Bartz [http://ptrbrtz.net]
+* Copyright (C) 2013 Peter Bartz [http://ptrbrtz.net]
 * Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
 * Written by Peter Bartz (peter-bartz@gmx.de)
 *
@@ -17,7 +17,11 @@
 
 #include <string>
 #include <memory>
+#ifdef _MSC_VER
+#include <functional>
+#else
 #include <tr1/functional>
+#endif // _MSC_VER
 #include <stdexcept>
 #include <sstream>
 #include <unistd.h>  // for write(), close(), ...
@@ -25,6 +29,7 @@
 #include <fcntl.h>   // for open(), ...
 #include <errno.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 #ifndef _REENTRANT
 #error You need to compile with _REENTRANT defined since this uses threads!
@@ -84,7 +89,7 @@ class RazorAHRS
     /* threading stuff */
     pthread_t _thread_id;
     void* _thread(void*);  // thread main function
-    volatile bool _stop_thread; // thred stop flag
+    volatile bool _stop_thread; // thread stop flag
 
     // start the tracking thread
     void _start_io_thread()
@@ -119,14 +124,14 @@ class RazorAHRS
         return (*(reinterpret_cast<const char*> (&num))) != 1;
     }
     
-    // swap endianess of int
-    void _swap_endianess(int &i)
+    // swap endianness of int
+    void _swap_endianness(int &i)
     {
       i = (i >> 24) | ((i << 8) & 0x00FF0000) | ((i >> 8) & 0x0000FF00) | (i << 24);
     }
     
-    // swap endianess of float
-    void _swap_endianess(float &f)
+    // swap endianness of float
+    void _swap_endianness(float &f)
     {
       float swapped;
       char *f_as_char = reinterpret_cast<char*> (&f);
@@ -141,18 +146,18 @@ class RazorAHRS
       f = swapped;
     }
     
-    // swap endianess of int array
-    void _swap_endianess(int arr[], int arr_length)
+    // swap endianness of int array
+    void _swap_endianness(int arr[], int arr_length)
     {
       for (int i = 0; i < arr_length; i++)
-        _swap_endianess(arr[i]);
+        _swap_endianness(arr[i]);
     }
     
-    // swap endianess of float array
-    void _swap_endianess(float arr[], int arr_length)
+    // swap endianness of float array
+    void _swap_endianness(float arr[], int arr_length)
     {
       for (int i = 0; i < arr_length; i++)
-        _swap_endianess(arr[i]);
+        _swap_endianness(arr[i]);
     }
 };
 

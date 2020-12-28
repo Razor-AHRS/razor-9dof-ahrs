@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="RazorAHRS.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Example.cpp" />
+    <ClCompile Include="RazorAHRS.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4AC80B0F-8909-4D91-96C8-ACCD4A78B2C4}</ProjectGuid>
+    <Keyword>Linux</Keyword>
+    <RootNamespace>RazorAHRS_Linux</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Linux</ApplicationType>
+    <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
+    <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
+    <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(IncludePath);$(ISenseIncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(IncludePath);$(ISenseIncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <IncludePath>$(IncludePath);$(ISenseIncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <IncludePath>$(IncludePath);$(ISenseIncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <ClCompile>
+      <PreprocessorDefinitions>_REENTRANT;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(LINUX_SDK_DIR)\include;$(LINUX_SDK_DIR)\include\x86_64-linux-gnu;$(LINUX_SDK_DIR)\local\include;/home/user/projects/$(ProjectName)/RazorAHRS;/home/user/projects/$(ProjectName);.;..;$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-pointer-sign;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CAdditionalWarning)</CAdditionalWarning>
+      <CppAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CppAdditionalWarning)</CppAdditionalWarning>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>pthread;rt;m</LibraryDependencies>
+    </Link>
+    <RemotePostBuildEvent>
+      <Command>
+      </Command>
+    </RemotePostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(LINUX_SDK_DIR)\include;$(LINUX_SDK_DIR)\include\x86_64-linux-gnu;$(LINUX_SDK_DIR)\local\include;/home/user/projects/$(ProjectName)/RazorAHRS;/home/user/projects/$(ProjectName);.;..;$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_REENTRANT;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-pointer-sign;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CAdditionalWarning)</CAdditionalWarning>
+      <CppAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CppAdditionalWarning)</CppAdditionalWarning>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>pthread;rt;m</LibraryDependencies>
+    </Link>
+    <RemotePostBuildEvent>
+      <Command>
+      </Command>
+    </RemotePostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_REENTRANT;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(LINUX_SDK_DIR)\include;$(LINUX_SDK_DIR)\include\x86_64-linux-gnu;$(LINUX_SDK_DIR)\local\include;/home/user/projects/$(ProjectName)/RazorAHRS;/home/user/projects/$(ProjectName);.;..;$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-pointer-sign;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CAdditionalWarning)</CAdditionalWarning>
+      <CppAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CppAdditionalWarning)</CppAdditionalWarning>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>pthread;rt;m</LibraryDependencies>
+    </Link>
+    <RemotePostBuildEvent>
+      <Command>
+      </Command>
+    </RemotePostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(LINUX_SDK_DIR)\include;$(LINUX_SDK_DIR)\include\x86_64-linux-gnu;$(LINUX_SDK_DIR)\local\include;/home/user/projects/$(ProjectName)/RazorAHRS;/home/user/projects/$(ProjectName);.;..;$(StlIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_REENTRANT;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-pointer-sign;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CAdditionalWarning)</CAdditionalWarning>
+      <CppAdditionalWarning>no-unknown-pragmas;switch;no-deprecated-declarations;empty-body;conversion;return-type;parentheses;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable;%(CppAdditionalWarning)</CppAdditionalWarning>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>pthread;rt;m</LibraryDependencies>
+    </Link>
+    <RemotePostBuildEvent>
+      <Command>
+      </Command>
+    </RemotePostBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

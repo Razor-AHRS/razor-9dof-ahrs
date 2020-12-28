@@ -366,9 +366,9 @@ void outputCalibration() {
   // Output calibration
   System.out.printf("In the Razor_AHRS.ino, under 'SENSOR CALIBRATION' find the section that reads 'Magnetometer (extended calibration)'\n");
   System.out.printf("Replace the existing 3 lines with these:\n\n");
-  System.out.printf("#define CALIBRATION__MAGN_USE_EXTENDED true\n");
-  System.out.printf("const float magn_ellipsoid_center[3] = {%.6g, %.6g, %.6g};\n", center.get(0), center.get(1), center.get(2));
-  System.out.printf("const float magn_ellipsoid_transform[3][3] = {{%.6g, %.6g, %.6g}, {%.6g, %.6g, %.6g}, {%.6g, %.6g, %.6g}};\n",
+  System.out.printf("boolean CALIBRATION__MAGN_USE_EXTENDED = true;\n");
+  System.out.printf("float magn_ellipsoid_center[3] = {%.6g, %.6g, %.6g};\n", center.get(0), center.get(1), center.get(2));
+  System.out.printf("float magn_ellipsoid_transform[3][3] = {{%.6g, %.6g, %.6g}, {%.6g, %.6g, %.6g}, {%.6g, %.6g, %.6g}};\n",
     comp.get(0), comp.get(1), comp.get(2), comp.get(3), comp.get(4), comp.get(5), comp.get(6), comp.get(7), comp.get(8));
   println("\n");
 }

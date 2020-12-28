@@ -1,5 +1,5 @@
 /******************************************************************************************
-* Test Program: Mac OSX / Unix / Linux C++ Interface for Razor AHRS v1.4.2
+* Test Program: Mac OSX / Unix / Linux / Windows C++ Interface for Razor AHRS
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" and "9DOF Sensor Stick"
 *
@@ -20,12 +20,15 @@
 
 using namespace std;
 
-
 // Set your serial port here!
+#ifdef _WIN32
+const string serial_port_name = "COM5";
+#else
 //const string serial_port_name = "/dev/tty.FireFly-6162-SPP"; 
-const string serial_port_name = "/dev/tty.usbserial-A700eEhN";
-//const string serial_port_name = "/dev/ttyUSB0"; // a good guess on linux
-
+//const string serial_port_name = "/dev/tty.usbserial-A700eEhN";
+//const string serial_port_name = "/dev/ttyUSB0"; // a good guess on Linux
+const string serial_port_name = "/dev/ttyACM0"; // a good guess for the M0 on Linux
+#endif // _WIN32
 
 // Razor error callback handler
 // Will be called from (and in) Razor background thread!
@@ -107,4 +110,3 @@ int main()
   getchar();  // wait for RETURN key
   return 0;
 }
-
